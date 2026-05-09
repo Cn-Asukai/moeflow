@@ -1,0 +1,52 @@
+name: PR checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  static-check:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    - run: pip install ruff
+    - run: ruff check .
+    - run: ruff format --diff .
+
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: hoverkraft-tech/compose-action@v2.0.1
+      with:
+        compose-file: tests/deps.yaml
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    - run: |
+        sudo apt-get install --yes libjpeg-dev libz-dev python3-dev libfreetype-dev build-essential
+    - run: pip install -r requirements.txt
+    - run: cp -rv .env.test.sample .env.test
+    - uses: pavelzw/pytest-action@v2
+      with:
+        job-summary: true
+        verbose: true
+        custom-arguments: '-n=2'
+        emoji: false
+    - uses: codecov/codecov-action@v4.5.0
+      if: always()
+      with:
+        fail_ci_if_error: true
+        use_oidc: true
+    - name: save test report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: report.html
+        path: report.html
