@@ -5,6 +5,7 @@ import { request } from '.';
 import { AxiosRequestConfig } from 'axios';
 import { toUnderScoreCase } from '../utils';
 import { PaginationParams } from '.';
+import { Team, UserTeam } from '@/interfaces';
 
 /** 获取个人团队列表的请求数据 */
 interface GetUserTeamsParams {
@@ -18,7 +19,7 @@ const getUserTeams = ({
   params?: GetUserTeamsParams & PaginationParams;
   configs?: AxiosRequestConfig;
 } = {}) => {
-  return request({
+  return request<UserTeam[]>({
     method: 'GET',
     url: `/v1/user/teams`,
     params: toUnderScoreCase(params),
@@ -38,7 +39,7 @@ const getTeams = ({
   params: GetTeamsParams & PaginationParams;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<Team[]>({
     method: 'GET',
     url: `/v1/teams`,
     params: toUnderScoreCase(params),
@@ -54,7 +55,7 @@ const getTeam = ({
   id: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<UserTeam>({
     method: 'GET',
     url: `/v1/teams/${id}`,
     ...configs,
@@ -77,7 +78,7 @@ const createTeam = ({
   data: CreateTeamData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ team: UserTeam; message: string }>({
     method: 'POST',
     url: `/v1/teams`,
     data: toUnderScoreCase(data),
@@ -103,7 +104,7 @@ const editTeam = ({
   data: EditTeamData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ team: UserTeam; message: string }>({
     method: 'PUT',
     url: `/v1/teams/${id}`,
     data: toUnderScoreCase(data),
@@ -119,7 +120,7 @@ const deleteTeam = ({
   id: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string }>({
     method: 'DELETE',
     url: `/v1/teams/${id}`,
     ...configs,

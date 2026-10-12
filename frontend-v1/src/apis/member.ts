@@ -2,7 +2,8 @@ import { AxiosRequestConfig } from 'axios';
 import { request, PaginationParams } from '.';
 import { GroupTypes } from './type';
 import { toPlural, toUnderScoreCase } from '../utils';
-import { Role } from '../interfaces';
+import { Role, Project, UserTeam } from '../interfaces';
+import { APIUser } from './user';
 
 /** 获取团队用户列表的请求数据 */
 interface GetMembersParams {
@@ -20,7 +21,7 @@ const getMembers = ({
   params: GetMembersParams & PaginationParams;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<(APIUser & { role: Role })[]>({
     method: 'GET',
     url: `/v1/${toPlural(groupType)}/${groupID}/users`,
     params: toUnderScoreCase(params),
@@ -29,18 +30,18 @@ const getMembers = ({
 };
 
 /** 删除团队成员 */
-const deleteMember = ({
+const deleteMember = <Group extends GroupTypes>({
   groupType,
   groupID,
   userID,
   configs,
 }: {
-  groupType: GroupTypes;
+  groupType: Group;
   groupID: string;
   userID: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string; group: Group extends 'project' ? Project : UserTeam }>({
     method: 'DELETE',
     url: `/v1/${toPlural(groupType)}/${groupID}/users/${userID}`,
     ...configs,

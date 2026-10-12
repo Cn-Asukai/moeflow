@@ -186,7 +186,7 @@
   "site.oldEmailVCode": "Verification code received at original email",
   "site.newEmail": "New Email",
   "site.newEmailVCode": "Verification code received at new email",
-  "project.finishedTip": "Project Completed",
+  "project.finishedTip": "Project completed — read-only. Source files and revision history are retained for viewing and export.",
   "site.sourceLanguage": "Source Language",
   "site.targetLanguage": "Target Language",
   "project.targetSetting": "Target Language",

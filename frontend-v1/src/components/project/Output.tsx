@@ -4,11 +4,14 @@ import dayjs from 'dayjs';
 import { useIntl } from 'react-intl';
 import { Avatar } from '..';
 import { APIOutput } from '../../apis/output';
-import { OUTPUT_STATUS, OUTPUT_TYPE } from '../../constants/output';
+import { OUTPUT_STATUS, OUTPUT_STATUS_LABELS, OUTPUT_TYPE } from '../../constants/output';
 import { FC } from '../../interfaces';
 import style from '../../style';
 import { Button } from '../shared/Button';
 
+import { request } from '@/apis';
+import { message } from 'antd';
+import { cancelJob } from '@/apis/jobs';
 /** 导出的属性接口 */
 interface OutputProps {
   index: number;
@@ -85,7 +88,7 @@ export const Output: FC<OutputProps> = ({ index, output, className }) => {
       <div className="Output__Bottom">
         <Button
           className="Output__DownloadButton"
-          disabled={output.status === OUTPUT_STATUS.ERROR}
+          disabled={output.status === OUTPUT_STATUS.ERROR || !!output.expiresAt && output.expiresAt <= Date.now() / 1000}
           loading={
             ![OUTPUT_STATUS.SUCCEEDED, OUTPUT_STATUS.ERROR].includes(
               output.status,
@@ -93,13 +96,22 @@ export const Output: FC<OutputProps> = ({ index, output, className }) => {
           }
           color={style.textColor}
           colorDisibled={style.textColorSecondary}
-          type="link"
-          linkProps={{ href: output.link, target: '_blank' }}
+          onClick={async () => {
+            if (!output.resourceID) return;
+            const popup = window.open('', '_blank');
+            try {
+              const { data } = await request<{ url: string }>({ method: 'GET', url: `/v1/resources/${output.resourceID}/download` });
+              if (popup) popup.location.href = data.url;
+            } catch (error) { popup?.close(); message.error('Download unavailable or expired'); }
+          }}
         >
           {output.link
             ? formatMessage({ id: 'output.download' })
-            : output.statusDetails.find((d) => d.id === output.status)?.name}
+            : output.statusDetails?.find((d) => d.id === output.status)?.name || OUTPUT_STATUS_LABELS[output.status]}
         </Button>
+        {![OUTPUT_STATUS.SUCCEEDED, OUTPUT_STATUS.ERROR].includes(output.status) && <p>{output.progress !== undefined ? `${Math.round(output.progress)}%` : 'Queued'} {output.taskID && <Button onClick={() => cancelJob(output.taskID!).catch(() => message.error('Unable to cancel export'))}>Cancel</Button>}</p>}
+        {output.lastError && <p role="alert">{output.lastError}</p>}
+        {output.expiresAt && <p>{output.expiresAt <= Date.now() / 1000 ? 'Export expired. Create a new export.' : `Expires: ${new Date(output.expiresAt * 1000).toLocaleString()}`}</p>}
       </div>
     </div>
   );

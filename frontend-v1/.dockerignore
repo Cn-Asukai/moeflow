@@ -1,6 +1,10 @@
 # style.ts 编译后的文件，用于 config-overrides.js 中覆盖 LESS 样式
 /style.js
 /.env
+/.env.*
+!/.env.sample
+/build
+/stats.html
 
 # report
 /report.*.json

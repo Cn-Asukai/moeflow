@@ -9,12 +9,14 @@ import { ImageOCRProgress } from '@/components/unused/ImageOCRProgress';
 import {
   FILE_NOT_EXIST_REASON,
   FILE_SAFE_STATUS,
+  FILE_TYPE,
   IMAGE_COVER,
 } from '@/constants';
 import { FC, File } from '@/interfaces';
 import style from '@/style';
 import { cardClickEffect, clickEffect } from '@/utils/style';
 
+import { FileHistory } from './FileHistory';
 /** 文件条目的属性接口 */
 interface FileItemProps {
   file: File;
@@ -29,7 +31,7 @@ interface FileItemProps {
 }
 
 const width = IMAGE_COVER.WIDTH;
-const height = 240;
+const height = 300;
 const imageHeight = IMAGE_COVER.HEIGHT;
 
 const fileItemStyle = css`
@@ -139,6 +141,7 @@ const fileItemStyle = css`
   }
   .FileItem__Name {
     height: 36px;
+    flex: 0 0 36px;
     overflow: hidden;
     word-break: break-all;
   }
@@ -187,7 +190,9 @@ export const FileItem: FC<FileItemProps> = ({
       onClick={onClick}
     >
       <div className="FileItem__ImageWrapper">
-        {file.coverUrl === 'generating' ? (
+        {file.type === FILE_TYPE.FOLDER || file.type === FILE_TYPE.TEXT ? (
+          <div className="FileItem__ImageTip">{file.type === FILE_TYPE.FOLDER ? 'Folder' : 'UTF-8 text'}</div>
+        ) : file.coverUrl === 'generating' ? (
           <div className="FileItem__ImageTip">
             {formatMessage({ id: 'file.generating' })}
           </div>
@@ -238,7 +243,9 @@ export const FileItem: FC<FileItemProps> = ({
         </div>
       )}
       <div className="FileItem__Info">
-        <div className="FileItem__Name">{file.name}</div>
+        <div className="FileItem__Name" title={file.name}>{file.name}</div>
+        {file.size !== undefined && <small>{file.size < 1024 ? `${file.size} B` : file.size < 1024 * 1024 ? `${(file.size / 1024).toFixed(1)} KiB` : `${(file.size / (1024 * 1024)).toFixed(1)} MiB`}</small>}
+        {file.type !== FILE_TYPE.FOLDER && file.revision !== undefined && !file.uploading && <FileHistory fileID={file.id} />}
 
         {file.uploading ? (
           <FileUploadProgress file={file} />

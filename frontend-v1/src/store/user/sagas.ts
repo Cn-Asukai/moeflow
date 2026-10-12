@@ -1,21 +1,19 @@
-import { put, takeEvery } from 'redux-saga/effects';
+import type { SagaIterator } from 'redux-saga';
+import { call, put, takeEvery } from 'redux-saga/effects';
 import { initialState, setUserInfo, setUserToken } from './slice';
 import { toLowerCamelCase } from '../../utils';
-import { api, BasicSuccessResult } from '../../apis';
+import { api, BasicSuccessResult, handleFailure } from '@/apis';
 import { setToken, removeToken } from '../../utils/cookie';
 import { GetUserInfoResponse } from '../../apis/auth';
 import type { Axios } from 'axios';
 
 // worker Sage
-function* getUserInfoAsync(action: ReturnType<typeof setUserToken>) {
+function* getUserInfoAsync(action: ReturnType<typeof setUserToken>): SagaIterator {
   const token = action.payload.token;
-  const instance: Axios = yield api.getAxiosInstance();
+  const instance: Axios = yield call(api.getAxiosInstance);
   if (token === '') {
-    if (import.meta.env.DEV) {
-      // do nothing in dev: vite hot reloading may create APIClient multiple times,
-      // causing 401 and an empty token being set
-      console.debug('[user/sagas] Ignored empty token in DEV due to HMR');
-      return;
+    if (instance.defaults.headers.common['Authorization']) {
+      yield call(() => instance.delete('/v1/user/token').catch(() => undefined));
     }
     // 清除 Axios Authorization 头
     delete instance.defaults.headers.common['Authorization'];
@@ -33,18 +31,18 @@ function* getUserInfoAsync(action: ReturnType<typeof setUserToken>) {
     // 获取并记录用户信息到 Store
     try {
       const result: BasicSuccessResult<GetUserInfoResponse> =
-        yield api.auth.getUserInfo({
+        yield call(api.auth.getUserInfo, {
           data: { token },
         });
       yield put(setUserInfo(toLowerCamelCase(result.data)));
-    } catch (error: any) {
-      error.default();
+    } catch (error) {
+      handleFailure(error);
     }
   }
 }
 
 // watcher Saga
-function* watcher() {
+function* watcher(): SagaIterator {
   yield takeEvery(setUserToken.type, getUserInfoAsync);
 }
 

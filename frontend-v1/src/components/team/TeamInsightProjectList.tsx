@@ -17,7 +17,7 @@ import { useIntl } from 'react-intl';
 import { useSelector } from 'react-redux';
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import { Icon, ListSearchInput } from '..';
-import apis from '@/apis';
+import apis, { request } from '@/apis';
 import { APIInsightProject, APIInsightUserProject } from '@/apis/insight';
 import { usePagination } from '@/hooks';
 import { FC, Team } from '@/interfaces';
@@ -25,7 +25,7 @@ import { AppState } from '@/store';
 import style from '@/style';
 import { toLowerCamelCase } from '@/utils';
 import dayjs from 'dayjs';
-import { OUTPUT_STATUS, OUTPUT_TYPE } from '@/constants/output';
+import { OUTPUT_STATUS, OUTPUT_STATUS_LABELS, OUTPUT_TYPE } from '@/constants/output';
 import { clickEffect } from '@/utils/style';
 
 const { Column } = Table;
@@ -348,7 +348,7 @@ export const TeamInsightProjectList: FC<TeamInsightProjectListProps> = ({
                     <div>
                       <CustomButton
                         className="TeamInsightProjectList__OutputDownloadButton"
-                        disabled={output.status === OUTPUT_STATUS.ERROR}
+                        disabled={output.status !== OUTPUT_STATUS.SUCCEEDED || !!output.expiresAt && output.expiresAt <= Date.now() / 1000}
                         loading={
                           ![
                             OUTPUT_STATUS.SUCCEEDED,
@@ -357,20 +357,24 @@ export const TeamInsightProjectList: FC<TeamInsightProjectListProps> = ({
                         }
                         color={style.textColor}
                         colorDisibled={style.textColorSecondary}
-                        type="link"
-                        linkProps={{ href: output.link, target: '_blank' }}
+                        onClick={async () => {
+                          if (!output.resourceID) return;
+                          const popup = window.open('', '_blank');
+                          try { const { data } = await request<{ url: string }>({ method: 'GET', url: `/v1/resources/${output.resourceID}/download` }); if (popup) popup.location.href = data.url; }
+                          catch { popup?.close(); message.error('Export unavailable or expired'); }
+                        }}
                       >
                         {output.link
                           ? formatMessage({ id: 'output.download' })
-                          : output.statusDetails.find(
-                              (d) => d.id === output.status,
-                            )?.name}{' '}
+                          : output.statusDetails?.find((detail) => detail.id === output.status)?.name || OUTPUT_STATUS_LABELS[output.status]}{' '}
                         {output.type === OUTPUT_TYPE.ONLY_TEXT ? 'txt' : 'zip'}
                         {' - '}
                         {dayjs.utc(output.createTime).local().format('lll')}
                         {' - '}
                         {output.target.language.i18nName}
                       </CustomButton>
+                      {output.lastError && <p role="alert">{output.lastError}</p>}
+                      {output.expiresAt && <small>{output.expiresAt <= Date.now() / 1000 ? 'Export expired' : `Expires ${new Date(output.expiresAt * 1000).toLocaleString()}`}</small>}
                     </div>
                   ))}
                 </div>

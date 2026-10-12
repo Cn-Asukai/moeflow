@@ -17,9 +17,9 @@ export const routes = {
     },
   },
   imageTranslator: {
-    asRouter: `/image-translator/:fileID-:targetID`,
+    asRouter: `/image-translator/:fileID/:targetID`,
     build: (fileId: string, targetId: string) =>
-      `/image-translator/${fileId}-${targetId}`,
+      `/image-translator/${encodeURIComponent(fileId)}/${encodeURIComponent(targetId)}`,
   },
   admin: '/admin',
 } as const;

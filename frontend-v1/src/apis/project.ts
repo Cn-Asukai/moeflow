@@ -10,6 +10,8 @@ import {
 } from '../constants';
 import { Language, Project, ProjectSet, Role, Team } from '../interfaces';
 import { toUnderScoreCase } from '../utils';
+import { directUpload } from './upload';
+import { waitForJob } from './jobs';
 
 export interface APIProject {
   groupType: 'project';
@@ -108,58 +110,29 @@ interface CreateProjectData {
   allowApplyType: number;
   applicationCheckType: number;
   defaultRole: string;
-  labelplusTxt?: string;
+  labelplusTXT?: string;
 }
 /** 新建项目 */
-const createProject = ({
-  teamID,
-  data,
-  configs,
-}: {
-  teamID: string;
-  data: CreateProjectData;
-  configs?: AxiosRequestConfig;
-}) => {
-  return request({
-    method: 'POST',
-    url: `/v1/teams/${teamID}/projects`,
-    data: toUnderScoreCase(data),
-    ...configs,
-  });
+const createProject = async ({ teamID, data, configs }: { teamID: string; data: CreateProjectData; configs?: AxiosRequestConfig }) => {
+  const { labelplusTXT, ...metadata } = data;
+  const result = await request<{ project: Project; message: string }>({ method: 'POST', url: `/v1/teams/${teamID}/projects`, data: toUnderScoreCase(metadata), ...configs });
+  if (labelplusTXT !== undefined) {
+    const uploaded = await directUpload<{ resource_id: string }>(new Blob([labelplusTXT], { type: 'text/plain' }), { purpose: 'import', team_id: teamID, name: 'translations.txt' }, configs);
+    const task = await request<{ task_id: string }>({ method: 'POST', url: `/v1/teams/${teamID}/imports`, data: { resource_id: uploaded.data.resource_id, project_id: result.data.project.id, format: 'labelplus' } });
+    await waitForJob(task.data.task_id);
+    result.data.project = (await getProject({ id: result.data.project.id })).data;
+  }
+  return result;
 };
 
 /** 导入项目的请求数据 */
-interface ImportProjectData {
-  project: Blob;
-  labelplus: Blob;
-}
-/** 导入项目 */
-const importProject = ({
-  teamID,
-  projectSetID,
-  data,
-  configs,
-}: {
-  teamID: string;
-  projectSetID: string;
-  data: ImportProjectData;
-  configs?: AxiosRequestConfig;
+interface ImportProjectData { project: Blob }
+/** Import an entire archive through a durable backend task. */
+const importProject = async ({ teamID, projectSetID, data, configs }: {
+  teamID: string; projectSetID: string; data: ImportProjectData; configs?: AxiosRequestConfig;
 }) => {
-  const formData = new FormData();
-  formData.append('project', new File([data.project], 'project'));
-  formData.append('labelplus', new File([data.labelplus], 'labelplus'));
-
-  return request({
-    method: 'POST',
-    url: `/v1/teams/${teamID}/project-sets/${projectSetID}/project-zips`,
-    data: formData,
-    ...{
-      ...configs,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
-  });
+  const archive = await directUpload<{ resource_id: string }>(data.project, { purpose: 'import', team_id: teamID, name: 'project.zip' }, configs);
+  return request<{ task_id: string }>({ method: 'POST', url: `/v1/teams/${teamID}/imports`, data: { resource_id: archive.data.resource_id, project_set_id: projectSetID, format: 'zip' }, ...configs });
 };
 
 /** 上传文件 */
@@ -174,21 +147,7 @@ const uploadFile = ({
   file: Blob;
   configs?: AxiosRequestConfig;
 }) => {
-  const formData = new FormData();
-  formData.append('file', new File([file], filename));
-
-  return request({
-    method: 'POST',
-    url: `/v1/projects/${projectID}/files`,
-    data: formData,
-    ...{
-      ...configs,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
-    ...configs,
-  });
+  return directUpload(file, { purpose: 'file', project_id: projectID, name: filename }, configs);
 };
 
 /** 修改项目的请求数据 */
@@ -209,7 +168,7 @@ const editProject = ({
   data: EditProjectData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ project: Project; message: string }>({
     method: 'PUT',
     url: `/v1/projects/${id}`,
     data: toUnderScoreCase(data),
@@ -225,9 +184,9 @@ const finishProject = ({
   id: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
-    method: 'DELETE',
-    url: `/v1/projects/${id}`,
+  return request<{ project: Project; message: string }>({
+    method: 'POST',
+    url: `/v1/projects/${id}/finish`,
     ...configs,
   });
 };

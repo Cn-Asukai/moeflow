@@ -3,7 +3,7 @@ import { request, PaginationParams } from '.';
 import { toPlural, toUnderScoreCase } from '@/utils';
 import { AxiosRequestConfig } from 'axios';
 import { APIUser } from './user';
-import { Role, UserTeam } from '@/interfaces';
+import { Role, UserTeam, Project } from '@/interfaces';
 import { APIProject } from './project';
 import { ApplicationStatuses } from '@/constants';
 
@@ -54,18 +54,18 @@ interface CreateApplicationData {
   message: string;
 }
 /** 创建申请 */
-const createApplication = ({
+const createApplication = <Group extends GroupTypes>({
   groupType,
   groupID,
   data,
   configs,
 }: {
-  groupType: GroupTypes;
+  groupType: Group;
   groupID: string;
   data: CreateApplicationData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string; group: Group extends 'project' ? Project : UserTeam; joined: boolean }>({
     method: 'POST',
     url: `/v1/${toPlural(groupType)}/${groupID}/applications`,
     data: toUnderScoreCase(data),
@@ -107,7 +107,7 @@ const deleteApplication = ({
   applicationID: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string }>({
     method: 'DELETE',
     url: `/v1/applications/${applicationID}`,
     ...configs,

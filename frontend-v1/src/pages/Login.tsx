@@ -4,7 +4,7 @@ import React, { useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch } from 'react-redux';
 import { useHistory } from 'react-router';
-import { FailureResults, resultTypes, api } from '../apis';
+import { isFailureResult, handleFailure, resultTypes, api } from '../apis';
 import {
   AuthFormWrapper,
   CAPTCHAInput,
@@ -64,8 +64,8 @@ const Login: FC<LoginProps> = ({ beforeRedirect = false } = {}) => {
         // 跳转到仪表盘
         history.push('/dashboard/projects');
       })
-      .catch((result: FailureResults) => {
-        if (result.type === resultTypes.VALIDATION_FAILURE) {
+      .catch((result: unknown) => {
+        if (isFailureResult(result) && result.type === resultTypes.VALIDATION_FAILURE) {
           result.default(form);
           if (result.data.message.captcha) {
             // 如果是验证码错误，则刷新验证码
@@ -84,10 +84,13 @@ const Login: FC<LoginProps> = ({ beforeRedirect = false } = {}) => {
             form.setFields([{ name: 'password', value: '' }]); // 清空密码
             captchaInputRef.current?.refresh({ focus: false });
             passwordInputRef.current?.focus();
+          } else {
+            captchaInputRef.current?.refresh({ focus: false });
           }
           return;
         }
-        result.default();
+        captchaInputRef.current?.refresh({ focus: false });
+        handleFailure(result, form);
       });
   };
 

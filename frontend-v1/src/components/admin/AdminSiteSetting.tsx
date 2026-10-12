@@ -4,7 +4,7 @@ import TextArea from 'antd/lib/input/TextArea';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { api } from '@/apis';
+import { api, handleFailure, isFailureResult, resultTypes } from '@/apis';
 import { APISiteSetting } from '@/apis/siteSetting';
 import { FC } from '@/interfaces';
 import { toLowerCamelCase } from '@/utils';
@@ -28,6 +28,20 @@ function arrayToTextarea(array: string[]): string {
   return array.join('\n');
 }
 
+interface APISiteSettingFormData
+  extends Omit<APISiteSetting, 'whitelistEmails' | 'autoJoinTeamIDs'> {
+  whitelistEmails: string;
+  autoJoinTeamIDs: string;
+}
+
+function siteSettingToFormData(data: APISiteSetting): APISiteSettingFormData {
+  return {
+    ...data,
+    whitelistEmails: arrayToTextarea(data.whitelistEmails),
+    autoJoinTeamIDs: arrayToTextarea(data.autoJoinTeamIDs),
+  };
+}
+
 /** 站点设置的属性接口 */
 interface AdminSiteSettingProps {
   className?: string;
@@ -38,16 +52,10 @@ interface AdminSiteSettingProps {
 export const AdminSiteSetting: FC<AdminSiteSettingProps> = ({ className }) => {
   const { formatMessage } = useIntl();
 
-  const [form] = AntdForm.useForm();
+  const [form] = AntdForm.useForm<APISiteSettingFormData>();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [siteSetting, setSiteSetting] = useState<APISiteSetting | null>(null);
-
-  interface APISiteSettingFormData
-    extends Omit<APISiteSetting, 'whitelistEmails' | 'autoJoinTeamIDs'> {
-    whitelistEmails: string;
-    autoJoinTeamIDs: string;
-  }
 
   const handleFinish = (values: APISiteSettingFormData) => {
     api.siteSetting
@@ -60,38 +68,42 @@ export const AdminSiteSetting: FC<AdminSiteSettingProps> = ({ className }) => {
       })
       .then((result) => {
         const data = toLowerCamelCase(result.data);
-        data.whitelistEmails = data.whitelistEmails.join('\n');
-        data.autoJoinTeamIDs = data.autoJoinTeamIDs.join('\n');
-        form.setFieldsValue(data);
+        form.setFieldsValue(siteSettingToFormData(data));
         // 弹出提示
         message.success(formatMessage({ id: 'site.setting.editSuccess' }));
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.log(error);
-        if (error.data?.message?.whitelistEmails) {
-          const line = error.data.message.whitelistEmails
-            .map((line: number) => line + 1)
-            .join(', ');
-          error.data.message.whitelistEmails = [
-            formatMessage(
-              { id: 'site.setting.whitelistEmailsError' },
-              { line },
-            ),
-          ];
-        }
-        if (error.data?.message?.autoJoinTeamIDs) {
-          const line = error.data.message.autoJoinTeamIDs
-            .map((line: number) => line + 1)
-            .join(', ');
-          error.data.message.autoJoinTeamIDs = [
-            formatMessage(
-              { id: 'site.setting.autoJoinTeamIDsError' },
-              { line },
-            ),
-          ];
+        if (
+          isFailureResult(error) &&
+          error.type === resultTypes.VALIDATION_FAILURE
+        ) {
+          const fields = error.data.message;
+          if (fields.whitelistEmails) {
+            const line = fields.whitelistEmails
+              .map((line) => Number(line) + 1)
+              .join(', ');
+            fields.whitelistEmails = [
+              formatMessage(
+                { id: 'site.setting.whitelistEmailsError' },
+                { line },
+              ),
+            ];
+          }
+          if (fields.autoJoinTeamIDs) {
+            const line = fields.autoJoinTeamIDs
+              .map((line) => Number(line) + 1)
+              .join(', ');
+            fields.autoJoinTeamIDs = [
+              formatMessage(
+                { id: 'site.setting.autoJoinTeamIDsError' },
+                { line },
+              ),
+            ];
+          }
         }
 
-        error.default(form);
+        handleFailure(error, form);
       })
       .finally(() => {
         setSubmitting(false);
@@ -103,10 +115,8 @@ export const AdminSiteSetting: FC<AdminSiteSettingProps> = ({ className }) => {
       .getSiteSetting({})
       .then((result) => {
         const data = toLowerCamelCase(result.data);
-        data.whitelistEmails = arrayToTextarea(data.whitelistEmails);
-        data.autoJoinTeamIDs = arrayToTextarea(data.autoJoinTeamIDs);
         setSiteSetting(data);
-        form.setFieldsValue(data);
+        form.setFieldsValue(siteSettingToFormData(data));
       })
       .finally(() => {
         setLoading(false);

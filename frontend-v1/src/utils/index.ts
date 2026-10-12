@@ -80,11 +80,16 @@ function stringToLowerCamelCase(value: string) {
     return letter.toUpperCase();
   });
 }
+type CamelKey<Key extends string> = Key extends `${infer Head}_${infer Tail}`
+  ? `${Head}${Tail extends `id${infer Rest}` ? `ID${Rest}` : Tail extends `txt${infer Rest}` ? `TXT${Rest}` : Tail extends `captcha${infer Rest}` ? `CAPTCHA${Rest}` : Capitalize<CamelKey<Tail>>}`
+  : Key;
+export type Camelized<Value> = Value extends readonly (infer Item)[] ? Camelized<Item>[]
+  : Value extends object ? { [Key in keyof Value as Key extends string ? CamelKey<Key> : Key]: Camelized<Value[Key]> } : Value;
 /**
  * 将字符串或对象的 key 从“下划线格式”转换为“小驼峰格式”
  */
 function toLowerCamelCase(value: string): string;
-function toLowerCamelCase<T>(value: T): T;
+function toLowerCamelCase<T>(value: T): Camelized<T>;
 function toLowerCamelCase(
   value: string | { [propNames: string]: any } | any[],
 ) {

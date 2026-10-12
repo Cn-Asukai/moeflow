@@ -1,7 +1,8 @@
+import type { SagaIterator } from 'redux-saga';
 import { configureStore } from '@reduxjs/toolkit';
 import { combineReducers } from 'redux';
 import createSagaMiddleware from 'redux-saga';
-import { all } from 'redux-saga/effects';
+import { all, call } from 'redux-saga/effects';
 import siteReducer from './site/slice';
 import teamReducer from './team/slice';
 import teamSaga from './team/sagas';
@@ -32,13 +33,13 @@ const rootReducer = combineReducers({
   translation: translationReducer,
 });
 
-function* rootSaga() {
+function* rootSaga(): SagaIterator {
   yield all([
-    userSaga(),
-    teamSaga(),
-    projectSetSaga(),
-    projectSaga(),
-    sourceSaga(),
+    call(userSaga),
+    call(teamSaga),
+    call(projectSetSaga),
+    call(projectSaga),
+    call(sourceSaga),
   ]);
 }
 export type AppState = ReturnType<typeof rootReducer>;

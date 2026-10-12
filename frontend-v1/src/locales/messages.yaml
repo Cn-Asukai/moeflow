@@ -569,8 +569,8 @@ site.newEmailVCode:
   zhCn: 新邮箱收到的验证码
   en: Verification code received at new email
 project.finishedTip:
-  zhCn: 项目已完结
-  en: Project Completed
+  zhCn: 项目已完结，只读；源文件和修订历史仍保留，可查看及导出。
+  en: Project completed — read-only. Source files and revision history are retained for viewing and export.
 site.sourceLanguage:
   zhCn: 源语言
   en: Source Language

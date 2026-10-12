@@ -1,5 +1,6 @@
-import { cancelled, put, select, takeLatest } from 'redux-saga/effects';
-import { api, BasicSuccessResult } from '@/apis';
+import type { SagaIterator } from 'redux-saga';
+import { call, cancelled, put, select, takeLatest } from 'redux-saga/effects';
+import { api, BasicSuccessResult, handleFailure } from '@/apis';
 import { toLowerCamelCase } from '@/utils';
 import { getCancelToken } from '@/utils/api';
 import {
@@ -13,7 +14,7 @@ import { UserProjectSet } from '@/interfaces';
 // worker Sage
 function* setCurrentProjectSetWorker(
   action: ReturnType<typeof setCurrentProjectSetSaga>,
-) {
+): SagaIterator {
   // 清空当前 projectSet
   yield put(clearCurrentProjectSet());
   const projectSets: UserProjectSet[] = yield select(
@@ -30,13 +31,13 @@ function* setCurrentProjectSetWorker(
     const [cancelToken, cancel] = getCancelToken();
     try {
       const result: BasicSuccessResult<UserProjectSet> =
-        yield api.projectSet.getProjectSet({
+        yield call(api.projectSet.getProjectSet, {
           id: action.payload.id,
           configs: { cancelToken },
         });
       yield put(setCurrentProjectSet(toLowerCamelCase(result.data)));
-    } catch (error: any) {
-      error.default();
+    } catch (error) {
+      handleFailure(error);
     } finally {
       if (yield cancelled()) {
         cancel();
@@ -46,7 +47,7 @@ function* setCurrentProjectSetWorker(
 }
 
 // watcher Saga
-function* watcher() {
+function* watcher(): SagaIterator {
   yield takeLatest(setCurrentProjectSetSaga.type, setCurrentProjectSetWorker);
 }
 

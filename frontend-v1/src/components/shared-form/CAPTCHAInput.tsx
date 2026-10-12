@@ -11,15 +11,17 @@ import style from '@/style';
 import { getCancelToken } from '@/utils/api';
 import { clickEffect, imageClickEffect } from '@/utils/style';
 
+const CAPTCHA_LENGTH = 6;
+
 /** 用于 Form.Item 校验验证码，rules={[{validator: checkCAPTCHA}]} */
 export const checkCAPTCHA = (rule: any, captcha: CAPTCHAInputValue) => {
   const intl = getIntl();
-  if (captcha.value === '') {
+  if (!captcha?.value) {
     return Promise.reject(intl.formatMessage({ id: 'form.required' }));
   }
-  if (captcha.value.length !== 4) {
+  if (captcha.value.length !== CAPTCHA_LENGTH) {
     return Promise.reject(
-      intl.formatMessage({ id: 'form.stringLen' }, { len: 4 }),
+      intl.formatMessage({ id: 'form.stringLen' }, { len: CAPTCHA_LENGTH }),
     );
   }
   return Promise.resolve();
@@ -186,7 +188,8 @@ const CAPTCHAInputWithoutRef: React.ForwardRefRenderFunction<
       }
       placeholder={formatMessage({ id: 'auth.captchaTip' })}
       size="large"
-      maxLength={4}
+      maxLength={CAPTCHA_LENGTH}
+      inputMode="numeric"
       onPressEnter={onPressEnter}
       onChange={handleChange}
       value={captchaValue}

@@ -24,6 +24,7 @@ import { clearCurrentProjectSet } from '@/store/projectSet/slice';
 import { clearCurrentTeam } from '@/store/team/slice';
 import style from '../style';
 import Project from './Project';
+import { RecycleBin } from '@/components/shared/RecycleBin';
 
 /** 我参与的项目的属性接口 */
 interface MyProjectProps {}
@@ -68,6 +69,7 @@ const MyProject: FC<MyProjectProps> = () => {
           history.push('/dashboard/new-project');
         }}
       />
+      <div style={{ padding: '8px 12px', flex: 'none' }}><RecycleBin /></div>
       <ProjectList className="MyProject__ProjectList" from="user" />
     </div>
   );

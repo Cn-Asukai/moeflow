@@ -40,10 +40,6 @@ const ProjectFiles: FC<ProjectFilesProps> = ({ project }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]);
 
-  // 项目已完结返回提示
-  if (project?.status === PROJECT_STATUS.FINISHED) {
-    return <ProjectFinishedTip />;
-  }
 
   if (!project) {
     return (
@@ -151,6 +147,7 @@ const ProjectFiles: FC<ProjectFilesProps> = ({ project }) => {
   return cloneElement(
     wrapper,
     undefined,
+    project.status === PROJECT_STATUS.FINISHED && <ProjectFinishedTip />,
     <FileList
       project={project}
       target={currentTarget}

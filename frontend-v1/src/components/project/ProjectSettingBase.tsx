@@ -32,6 +32,7 @@ import { toLowerCamelCase } from '@/utils';
 import { can } from '@/utils/user';
 import { ProjectEditForm } from './ProjectEditForm';
 
+import { request } from '@/apis';
 /** 项目基础设置的属性接口 */
 interface ProjectSettingBaseProps {
   className?: string;
@@ -275,13 +276,14 @@ export const ProjectSettingBase: FC<ProjectSettingBaseProps> = ({
           <ContentItem>
             <Button
               block
-              onClick={confirmFinishProject}
+              onClick={currentProject.status === PROJECT_STATUS.FINISHED ? () => { request({ method: 'POST', url: `/v1/projects/${currentProject.id}/resume` }).then(() => { const resumed = { ...currentProject, status: PROJECT_STATUS.WORKING }; dispatch(setCurrentProject(resumed)); dispatch(editProject(resumed)); }).catch((error) => error.default?.()); } : confirmFinishProject}
               loading={deleteLoading}
             >
-              {formatMessage({ id: 'project.finish' })}
+              {currentProject.status === PROJECT_STATUS.FINISHED ? 'Resume project' : formatMessage({ id: 'project.finish' })}
             </Button>
           </ContentItem>
         )}
+        {can(currentProject, PROJECT_PERMISSION.DELETE) && <ContentItem><Button block danger onClick={() => Modal.confirm({ title: 'Move project to recycle bin?', content: 'Restorable for 7 days; after that files and history are permanently removed.', onOk: async () => { await request({ method: 'DELETE', url: `/v1/projects/${currentProject.id}` }); dispatch(deleteProject({ id: currentProject.id })); history.replace('/dashboard/projects'); } })}>Recycle project</Button></ContentItem>}
       </Content>
     </div>
   );

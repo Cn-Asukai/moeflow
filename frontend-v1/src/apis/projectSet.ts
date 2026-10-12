@@ -5,6 +5,7 @@ import { request } from '.';
 import { AxiosRequestConfig } from 'axios';
 import { toUnderScoreCase } from '../utils';
 import { PaginationParams } from '.';
+import { ProjectSet, UserProjectSet } from '@/interfaces';
 
 /** 获取团队的项目集列表的请求数据 */
 interface GetTeamProjectSetsParams {
@@ -20,7 +21,7 @@ const getTeamProjectSets = ({
   params?: GetTeamProjectSetsParams & PaginationParams;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<ProjectSet[]>({
     method: 'GET',
     url: `/v1/teams/${teamID}/project-sets`,
     params: toUnderScoreCase(params),
@@ -36,7 +37,7 @@ const getProjectSet = ({
   id: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<UserProjectSet>({
     method: 'GET',
     url: `/v1/project-sets/${id}`,
     ...configs,
@@ -61,7 +62,7 @@ const createProjectSet = ({
   data: CreateProjectSetData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ project_set: UserProjectSet; message: string }>({
     method: 'POST',
     url: `/v1/teams/${teamID}/project-sets`,
     data: toUnderScoreCase(data),
@@ -87,7 +88,7 @@ const editProjectSet = ({
   data: EditProjectSetData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ project_set: UserProjectSet; message: string }>({
     method: 'PUT',
     url: `/v1/project-sets/${id}`,
     data: toUnderScoreCase(data),
@@ -103,7 +104,7 @@ const deleteProjectSet = ({
   id: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string }>({
     method: 'DELETE',
     url: `/v1/project-sets/${id}`,
     ...configs,

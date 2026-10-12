@@ -11,30 +11,13 @@ import tailwindcss from '@tailwindcss/vite'
 const ___dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const moeflowSrc = path.join(___dirname, './src');
 
-/**
- * Develop with a bare Python API server
- */
-const bareBackendProxy: ProxyOptions = {
-  target: 'http://localhost:5000',
+/** Develop against the Rust API without the production Nginx proxy. */
+const apiProxy: ProxyOptions = {
+  target: process.env.API_PROXY_TARGET || 'http://127.0.0.1:8000',
   changeOrigin: true,
-  rewrite(clientReqPath: string) {
-    const toStripe = /^\/(api)/;
-    const rewritten = clientReqPath.replace(toStripe, '');
-    // console.debug('rewrite', clientReqPath, rewritten);
-    return rewritten;
-  },
+  rewrite: (clientReqPath) => clientReqPath.replace(/^\/api\//, '/'),
 };
 
-/**
- * Develop with server that handles /api/ /storage/ URL rewrites.
- * e.g. a nginx configured like https://github.com/moeflow-com/moeflow-deploy .
- */
-const rewriteBackendProxy: ProxyOptions = {
-  target: 'http://localhost:80',
-  changeOrigin: true,
-};
-
-const apiProxy = bareBackendProxy;
 
 // https://vitejs.dev/config/
 export default defineConfig({

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
 import { FC } from '../../interfaces';
-import { EmptyTip } from '..';
 
 /** 项目完结提示的属性接口 */
 interface ProjectFinishedTipProps {
@@ -15,5 +14,5 @@ export const ProjectFinishedTip: FC<ProjectFinishedTipProps> = ({
 }) => {
   const { formatMessage } = useIntl(); // i18n
 
-  return <EmptyTip text={formatMessage({ id: 'project.finishedTip' })} />;
+  return <div role="status" className={className} style={{ padding: '12px 16px', width: '100%' }}>{formatMessage({ id: 'project.finishedTip' })}</div>;
 };

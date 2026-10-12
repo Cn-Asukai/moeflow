@@ -160,6 +160,20 @@ export type FailureResults =
   | NetworkFailureResult
   | CancelFailureResult
   | OtherFailureResult;
+const isBasicFailureData = (value: unknown): value is BasicFailureResultData => value !== null && typeof value === 'object' && 'code' in value && typeof value.code === 'number' && 'error' in value && typeof value.error === 'string' && 'message' in value && typeof value.message === 'string';
+const isValidationFailureData = (value: unknown): value is ValidationFailureResultData => value !== null && typeof value === 'object' && 'code' in value && value.code === 2 && 'error' in value && typeof value.error === 'string' && 'message' in value && value.message !== null && typeof value.message === 'object' && Object.values(value.message).every((errors: unknown) => Array.isArray(errors) && errors.every((error: unknown) => typeof error === 'string'));
+export function isFailureResult(error: unknown): error is FailureResults {
+  if (error === null || typeof error !== 'object' || !('default' in error) || typeof error.default !== 'function' || !('type' in error)) return false;
+  if (error.type === resultTypes.BASIC_FAILURE) return 'data' in error && isBasicFailureData(error.data);
+  if (error.type === resultTypes.VALIDATION_FAILURE) return 'data' in error && isValidationFailureData(error.data);
+  return error.type === resultTypes.NETWORK_FAILURE || error.type === resultTypes.CANCEL_FAILURE || error.type === resultTypes.OTHER_FAILURE;
+}
+export function handleFailure(error: unknown, form?: FormInstance): void {
+  if (isFailureResult(error)) {
+    if (error.type === resultTypes.VALIDATION_FAILURE) error.default(form);
+    else error.default();
+  } else message.error(error instanceof Error ? error.message : 'Unexpected request failure');
+}
 
 export async function request<T = unknown>(
   axiosConfig: AxiosRequestConfig,
@@ -180,68 +194,22 @@ export async function request<T = unknown>(
       };
       return result;
     })
-    .catch((error: AxiosError) => {
-      if (
-        error.response &&
-        error.response.status >= 400 &&
-        error.response.status < 500
-      ) {
-        if (error.response.data.code === 2) {
-          // 将 message 中的字段名转为小驼峰
-          error.response.data.message = toLowerCamelCase(
-            error.response.data.message,
-          );
-          // 验证错误
-          const result: ValidationFailureResult = {
-            type: resultTypes.VALIDATION_FAILURE,
-            data: error.response.data,
-            default: validateBasicFailure(error.response.data),
-          };
-          throw result;
-        } else if (error.response.status === 401) {
-          // token 错误
-          const result: BasicFailureResult = {
-            type: resultTypes.BASIC_FAILURE,
-            data: error.response.data,
-            default: () => {
-              // 清理 token
-              store.dispatch(setUserToken({ token: '' }));
-            },
-          };
-          throw result;
-        } else {
-          // 基础错误
-          const result: BasicFailureResult = {
-            type: resultTypes.BASIC_FAILURE,
-            data: error.response.data,
-            default: defaultBasicFailure(error.response.data),
-          };
-          throw result;
+    .catch((error: unknown) => {
+      if (axios.isCancel(error)) throw { type: resultTypes.CANCEL_FAILURE, default: () => {} } satisfies CancelFailureResult;
+      if (axios.isAxiosError<unknown>(error)) {
+        const data: unknown = error.response?.data;
+        if (error.response && error.response.status >= 400 && error.response.status < 600) {
+          if (isValidationFailureData(data)) {
+            const validated = { ...data, message: toLowerCamelCase(data.message) };
+            throw { type: resultTypes.VALIDATION_FAILURE, data: validated, default: validateBasicFailure(validated) } satisfies ValidationFailureResult;
+          }
+          if (isBasicFailureData(data)) {
+            throw { type: resultTypes.BASIC_FAILURE, data, default: () => { if (error.response?.status === 401) store.dispatch(setUserToken({ token: '' })); defaultBasicFailure(data)(); } } satisfies BasicFailureResult;
+          }
         }
-      } else {
-        if (error.message === 'Network Error') {
-          // 网络错误
-          const result: NetworkFailureResult = {
-            type: resultTypes.NETWORK_FAILURE,
-            default: defaultNetworkFailure,
-          };
-          throw result;
-        } else if (error.message === 'Canceled') {
-          // 上一个请求被终止了
-          const result: CancelFailureResult = {
-            type: resultTypes.CANCEL_FAILURE,
-            default: () => {}, // 什么都不做
-          };
-          throw result;
-        } else {
-          // 其他错误
-          const result: OtherFailureResult = {
-            type: resultTypes.OTHER_FAILURE,
-            default: () => {}, // 什么都不做
-          };
-          throw result;
-        }
+        if (error.message === 'Network Error') throw { type: resultTypes.NETWORK_FAILURE, default: defaultNetworkFailure } satisfies NetworkFailureResult;
       }
+      throw { type: resultTypes.OTHER_FAILURE, default: () => { message.error(error instanceof Error ? error.message : 'Unexpected request failure'); } } satisfies OtherFailureResult;
     });
 }
 
