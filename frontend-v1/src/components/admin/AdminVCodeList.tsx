@@ -2,10 +2,11 @@ import { css } from '@emotion/core';
 import { Table, TablePaginationConfig } from 'antd';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
-import apis from '@/apis';
+import apis, { handleFailure } from '@/apis';
 import { APIVCode } from '@/apis/user';
 import { FC } from '@/interfaces';
 import { toLowerCamelCase } from '@/utils';
+import type { Camelized } from '@/utils';
 import dayjs from 'dayjs';
 
 /** 验证码列表的属性接口 */
@@ -16,7 +17,7 @@ interface AdminVCodeListProps {
  * 验证码列表
  */
 export const AdminVCodeList: FC<AdminVCodeListProps> = ({ className }) => {
-  const [data, setData] = useState<APIVCode[]>([]);
+  const [data, setData] = useState<Camelized<APIVCode>[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
@@ -26,7 +27,7 @@ export const AdminVCodeList: FC<AdminVCodeListProps> = ({ className }) => {
       const data = toLowerCamelCase(result.data);
       setData(data);
     } catch (error) {
-      error.default();
+      handleFailure(error);
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,7 @@ export const AdminVCodeList: FC<AdminVCodeListProps> = ({ className }) => {
       title: '过期时间',
       dataIndex: 'expires',
       key: 'expires',
-      render: (_: any, record: APIVCode) =>
+      render: (_: unknown, record: Camelized<APIVCode>) =>
         (dayjs.utc().isAfter(dayjs.utc(record.expires)) ? '[已过期] ' : '') +
         dayjs.utc(record.expires).local().format('lll'),
     },

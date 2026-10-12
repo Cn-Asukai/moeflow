@@ -14,7 +14,7 @@ import {
   Form as AntdForm,
 } from 'antd';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
-import { api } from '@/apis';
+import { api, handleFailure, isFailureResult, resultTypes } from '@/apis';
 import { toLowerCamelCase } from '@/utils';
 import { APIUser } from '@/apis/user';
 import { FormItem } from '@/components/shared-form/FormItem';
@@ -73,7 +73,7 @@ export const AdminUserList: FC<AdminUserListProps> = ({ className }) => {
       });
       setData(data);
     } catch (error) {
-      error.default();
+      handleFailure(error);
     } finally {
       setLoading(false);
     }
@@ -99,7 +99,7 @@ export const AdminUserList: FC<AdminUserListProps> = ({ className }) => {
       fetchData();
       message.success(formatMessage({ id: 'site.setting.editSuccess' }));
     } catch (error) {
-      error.default();
+      handleFailure(error);
     } finally {
       setLoading(false);
     }
@@ -126,8 +126,8 @@ export const AdminUserList: FC<AdminUserListProps> = ({ className }) => {
         fetchData();
         setCreateUserModalOpen(false);
       })
-      .catch((error) => {
-        error.default(form);
+      .catch((error: unknown) => {
+        handleFailure(error, form);
       });
   };
 
@@ -144,7 +144,15 @@ export const AdminUserList: FC<AdminUserListProps> = ({ className }) => {
       });
       message.success(formatMessage({ id: 'site.setting.editSuccess' }));
     } catch (error) {
-      message.error(error.data.message?.password?.[0]);
+      if (
+        isFailureResult(error) &&
+        error.type === resultTypes.VALIDATION_FAILURE &&
+        error.data.message.password?.[0]
+      ) {
+        message.error(error.data.message.password[0]);
+      } else {
+        handleFailure(error);
+      }
     } finally {
       setLoading(false);
     }

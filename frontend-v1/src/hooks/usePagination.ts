@@ -3,7 +3,7 @@ import { set } from 'lodash-es';
 import React, { useRef, useState } from 'react';
 import { useDeepCompareEffect } from 'react-use';
 import { BasicSuccessResult, resultTypes } from '@/apis';
-import { toLowerCamelCase } from '@/utils';
+import { Camelized, toLowerCamelCase } from '@/utils';
 import { getCancelToken } from '@/utils/api';
 
 type RequestStatus = 'loading' | 'success' | 'failure';
@@ -12,7 +12,7 @@ interface UsePaginationParams<T, APIParams> {
   apiParams?: APIParams;
   defaultPage?: number;
   defaultLimit?: number;
-  defaultItems?: T[];
+  defaultItems?: Camelized<T>[];
 }
 interface UsePaginationReturn<T> {
   page: number;
@@ -33,13 +33,13 @@ export function usePagination<T, APIParams>({
   defaultPage = 1,
   defaultLimit = 50,
   defaultItems = [],
-}: UsePaginationParams<T, APIParams>): UsePaginationReturn<T> {
+}: UsePaginationParams<T, APIParams>): UsePaginationReturn<Camelized<T>> {
   const [page, setPage] = useState(defaultPage);
   const [limit, setLimit] = useState(defaultLimit);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<RequestStatus>('loading');
   const [refreshToken, setRefreshToken] = useState('');
-  const [items, setItems] = useState<T[]>(defaultItems);
+  const [items, setItems] = useState<Camelized<T>[]>(defaultItems);
   const currentAPIParamsRef = useRef(apiParams);
   const cancelRef = useRef<Canceler>();
 

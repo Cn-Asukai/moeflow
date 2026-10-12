@@ -12,6 +12,7 @@ import { FileSafeStatuses } from '@/constants';
 interface GetProjectFilesParams {
   target?: string;
   word?: string;
+  parentID?: string;
 }
 /** 获取项目中文件列表 */
 const getProjectFiles = ({
@@ -64,7 +65,7 @@ const deleteFile = ({
   id: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string }>({
     method: 'DELETE',
     url: `/v1/files/${id}`,
     ...configs,
@@ -86,7 +87,7 @@ const adminGetFiles = ({
   return request<File[]>({
     method: 'GET',
     url: `/v1/admin/files`,
-    params: toUnderScoreCase(params),
+    params: { ...toUnderScoreCase(params), safe_status: params?.safeStatus?.join(',') },
     ...configs,
   });
 };

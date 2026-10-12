@@ -6,6 +6,7 @@ import { AxiosRequestConfig } from 'axios';
 import { toUnderScoreCase } from '@/utils';
 import { PaginationParams } from '.';
 import { APILanguage } from './language';
+import { Target } from '@/interfaces';
 
 export interface APITarget {
   id: string;
@@ -31,7 +32,7 @@ const getProjectTargets = ({
   params?: GetProjectTargetsParams & PaginationParams;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<Target[]>({
     method: 'GET',
     url: `/v1/projects/${projectID}/targets`,
     params: { ...toUnderScoreCase(params) },
@@ -53,7 +54,7 @@ const createTarget = ({
   data: CreateTargetData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ target: Target; message: string }>({
     method: 'POST',
     url: `/v1/projects/${projectID}/targets`,
     data: toUnderScoreCase(data),
@@ -69,7 +70,7 @@ const deleteTarget = ({
   id: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string }>({
     method: 'DELETE',
     url: `/v1/targets/${id}`,
     ...configs,

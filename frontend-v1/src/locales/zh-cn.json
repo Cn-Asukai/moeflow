@@ -186,7 +186,7 @@
   "site.oldEmailVCode": "原邮箱收到的验证码",
   "site.newEmail": "新邮箱",
   "site.newEmailVCode": "新邮箱收到的验证码",
-  "project.finishedTip": "项目已完结",
+  "project.finishedTip": "项目已完结，只读；源文件和修订历史仍保留，可查看及导出。",
   "site.sourceLanguage": "源语言",
   "site.targetLanguage": "目标语言",
   "project.targetSetting": "目标语言",

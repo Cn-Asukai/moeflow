@@ -5,7 +5,7 @@ export interface Permission {
   intro: string;
 }
 export interface Role {
-  create_time: string;
+  createTime?: string;
   id: string;
   level: number;
   name: string;

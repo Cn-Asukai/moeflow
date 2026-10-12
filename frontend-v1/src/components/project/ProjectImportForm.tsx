@@ -3,16 +3,14 @@ import { Button, message, Upload } from 'antd';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import { api } from '@/apis';
-import { FC, UserProjectSet, UserTeam } from '@/interfaces';
-import { useDispatch, useSelector } from 'react-redux';
+import { FC } from '@/interfaces';
+import { useDispatch } from 'react-redux';
 import { createProject, resetProjectsState } from '@/store/project/slice';
-import { useHistory } from 'react-router-dom';
-import { AppState } from '@/store';
 import { toLowerCamelCase } from '@/utils';
 import { resetFilesState } from '@/store/file/slice';
-import * as zip from '@zip.js/zip.js';
 import { RcFile } from 'antd/lib/upload';
 import produce from 'immer';
+import { waitForJob } from '@/apis/jobs';
 
 /** 导入项目表单的属性接口 */
 interface ProjectImportFormProps {
@@ -33,107 +31,29 @@ export const ProjectImportForm: FC<ProjectImportFormProps> = ({
   const [importing, setImporting] = useState(false);
   const [importStatuses, setImportStatuses] = useState<string[]>([]);
   const [importFileList, setImportFileList] = useState<RcFile[]>();
-  const currentTeam = useSelector(
-    (state: AppState) => state.team.currentTeam,
-  ) as UserTeam;
-  const currentProjectSet = useSelector(
-    (state: AppState) => state.projectSet.currentProjectSet,
-  ) as UserProjectSet;
 
   const handleImport = async () => {
     setImporting(true);
-    if (importFileList) {
-      setImportStatuses(importFileList.map((file) => `${file.name} 排队中`));
-      for (let i = 0; i < importFileList.length; i++) {
-        const file = importFileList[i];
-        setImportStatuses(
-          produce((draft) => {
-            draft[i] = `${file.name}：解压中...`;
-          }),
-        );
-        let project, labelplus;
-        const zipReader = new zip.ZipReader(new zip.BlobReader(file));
-        const entries = await zipReader.getEntries();
-        for (const entry of entries) {
-          const writer = new zip.BlobWriter();
-          entry.getData?.(writer);
-          if (entry.filename === 'project.json') {
-            project = await writer.getData();
+    setImportStatuses((importFileList || []).map((file) => `${file.name}: queued`));
+    try {
+      for (const [index, file] of (importFileList || []).entries()) {
+        const update = (status: string) => setImportStatuses(produce((draft) => { draft[index] = `${file.name}: ${status}`; }));
+        try {
+          const result = await api.project.importProject({ teamID, projectSetID, data: { project: file }, configs: { onUploadProgress: (event) => update(`upload ${Math.round(event.loaded / file.size * 100)}%`) } });
+          const job = await waitForJob(result.data.task_id, { onProgress: (job) => update(`${job.status} ${Math.round(job.progress)}%`) });
+          if (job.result.project_id) {
+            const project = await api.project.getProject({ id: job.result.project_id });
+            dispatch(createProject({ project: toLowerCamelCase(project.data), unshift: true }));
           }
-          if (entry.filename === 'translations.txt') {
-            labelplus = await writer.getData();
-          }
-        }
-        zipReader.close();
-        if (project && labelplus) {
-          setImportStatuses(
-            produce((draft) => {
-              draft[i] = `${file.name}：创建项目...`;
-            }),
-          );
-          api.project
-            .importProject({
-              teamID: currentTeam.id,
-              projectSetID: currentProjectSet.id,
-              data: {
-                project,
-                labelplus,
-              },
-            })
-            .then(async (result) => {
-              // 上传图片
-              const zipReader = new zip.ZipReader(new zip.BlobReader(file));
-              const entries = await zipReader.getEntries();
-              for (const entry of entries) {
-                if (entry.filename.startsWith('images/')) {
-                  const writer = new zip.BlobWriter();
-                  entry.getData?.(writer);
-                  const filename = entry.filename.replace('images/', '');
-                  setImportStatuses(
-                    produce((draft) => {
-                      draft[i] = `${file.name}：上传 "${filename}" 中...`;
-                    }),
-                  );
-                  const image = await writer.getData();
-                  await api.project
-                    .uploadFile({
-                      projectID: result.data.project.id,
-                      filename,
-                      file: image,
-                    })
-                    .catch((error) => {
-                      message.error(`${file.name}：${filename} 上传失败`);
-                    });
-                }
-              }
-              zipReader.close();
-              // 导入成功
-              setImportStatuses(
-                produce((draft) => {
-                  draft[i] = `${file.name}：项目导入成功！`;
-                }),
-              );
-              dispatch(
-                createProject({
-                  project: toLowerCamelCase(result.data.project),
-                  unshift: true,
-                }),
-              );
-              dispatch(resetFilesState());
-              dispatch(resetProjectsState());
-            })
-            .catch((error) => {
-              message.error(`${file.name} 导入失败`);
-            });
-        } else {
-          setImportStatuses(
-            produce((draft) => {
-              draft[i] = `${file.name}：格式不正确`;
-            }),
-          );
+          update('succeeded');
+          dispatch(resetFilesState());
+          dispatch(resetProjectsState());
+        } catch (error) {
+          update(error instanceof Error ? error.message : 'Import failed');
+          message.error(`${file.name}: Import failed`);
         }
       }
-    }
+    } finally { setImporting(false); }
   };
 
   return (
@@ -150,6 +70,7 @@ export const ProjectImportForm: FC<ProjectImportFormProps> = ({
         }
       `}
     >
+      {!importing && importStatuses.map((status, index) => <div key={index}>{status}</div>)}
       {importing ? (
         <div>
           {importStatuses.map((status, i) => (

@@ -1,8 +1,9 @@
 // 申请加入状态
 export const APPLICATION_STATUS = {
-  PENDING: 1 as 1,
-  ALLOW: 2 as 2,
-  DENY: 3 as 3,
+  PENDING: 0 as const,
+  ALLOW: 1 as const,
+  DENY: 2 as const,
+  WITHDRAWN: 3 as const,
 };
 export type ApplicationStatuses =
   (typeof APPLICATION_STATUS)[keyof typeof APPLICATION_STATUS];

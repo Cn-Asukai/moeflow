@@ -56,7 +56,6 @@ export const AdminImageSafeCheck: FC<AdminImageSafeCheckProps> = ({
   const getFileNotExistReasonText = (id: FileNotExistReasons): string => {
     if (id === FILE_NOT_EXIST_REASON.BLOCK) return '屏蔽';
     if (id === FILE_NOT_EXIST_REASON.NOT_UPLOAD) return '待上传';
-    if (id === FILE_NOT_EXIST_REASON.FINISH) return '完结';
     return '未知';
   };
 

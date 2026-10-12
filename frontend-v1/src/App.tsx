@@ -1,7 +1,7 @@
 import { css, Global } from '@emotion/core';
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { Redirect, Route, Switch, useLocation } from 'react-router-dom';
+import { Redirect, Route, Switch, useLocation, useParams } from 'react-router-dom';
 import Admin from './pages/Admin';
 import Dashboard from './pages/Dashboard';
 import ImageTranslator from './pages/ImageTranslator';
@@ -21,6 +21,11 @@ const publicPaths = [
   routes.signUp,
   routes.resetPassword,
 ] as readonly string[];
+
+const DuplicateSlashRedirect: React.FC = () => {
+  const { url } = useParams<{ url: string }>();
+  return <Redirect to={`/${url.replace(/\/\/+/, '/')}`} />;
+};
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -145,9 +150,7 @@ const App: React.FC = () => {
             path="/:url(.*//+.*)"
             exact
             strict
-            render={({ match }) => (
-              <Redirect to={`/${match.params.url.replace(/\/\/+/, '/')}`} />
-            )}
+            render={() => <DuplicateSlashRedirect />}
           />
           <Route exact path={routes.index}>
             <IndexPage />

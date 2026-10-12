@@ -5,7 +5,7 @@ export const FILE_TYPE = {
   IMAGE: 2 as 2, // 图片
   TEXT: 3 as 3, // 纯文本
 };
-export type FileTypes = (typeof PARSE_STATUS)[keyof typeof PARSE_STATUS];
+export type FileTypes = (typeof FILE_TYPE)[keyof typeof FILE_TYPE];
 
 // 文件安全检测状态
 export const FILE_SAFE_STATUS = {
@@ -36,7 +36,6 @@ export type ParseStatuses = (typeof PARSE_STATUS)[keyof typeof PARSE_STATUS];
 export const FILE_NOT_EXIST_REASON = {
   UNKNOWN: 0 as 0, // 未知
   NOT_UPLOAD: 1 as 1, // 还没有上传
-  FINISH: 2 as 2, // 因为完结被删除
   BLOCK: 4 as 4, // 因为屏蔽被删除
 };
 export type FileNotExistReasons =

@@ -2,7 +2,7 @@ import { GroupTypes } from './type';
 import { request, PaginationParams } from '.';
 import { toPlural, toUnderScoreCase } from '../utils';
 import { AxiosRequestConfig } from 'axios';
-import { Role, UserTeam } from '../interfaces';
+import { Role, UserTeam, Project } from '../interfaces';
 import { APIProject } from './project';
 import { InvitationStatuses } from '../constants';
 import { APIUser } from './user';
@@ -65,7 +65,7 @@ const createInvitation = ({
   data: CreateInvitationData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string; invitation: APIInvitation | null }>({
     method: 'POST',
     url: `/v1/${toPlural(groupType)}/${groupID}/invitations`,
     data: toUnderScoreCase(data),
@@ -87,7 +87,7 @@ const editInvitation = ({
   data: EditInvitationData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string; invitation: APIInvitation }>({
     method: 'PUT',
     url: `/v1/invitations/${invitationID}`,
     data: toUnderScoreCase(data),
@@ -109,7 +109,7 @@ const dealInvitation = ({
   data: DealInvitationData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string; invitation: APIInvitation; group: UserTeam | Project }>({
     method: 'PATCH',
     url: `/v1/invitations/${invitationID}`,
     data: toUnderScoreCase(data),
@@ -125,7 +125,7 @@ const deleteInvitation = ({
   invitationID: string;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string }>({
     method: 'DELETE',
     url: `/v1/invitations/${invitationID}`,
     ...configs,

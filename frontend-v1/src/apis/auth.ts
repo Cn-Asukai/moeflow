@@ -4,10 +4,11 @@
 import { request } from '.';
 import { toUnderScoreCase } from '@/utils';
 import { AxiosRequestConfig } from 'axios';
+export interface AuthSession { token: string; expires_at: number; user: GetUserInfoResponse }
 
 /** 获取验证码 */
 const getCAPTCHA = ({ configs }: { configs?: AxiosRequestConfig } = {}) => {
-  return request({
+  return request<{ image: string; info: string; expires_in: number }>({
     method: 'POST',
     url: `/v1/captchas`,
     ...configs,
@@ -28,7 +29,7 @@ const getConfirmEmailVCode = ({
   data: GetConfirmEmailVCodeData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ wait: number }>({
     method: 'POST',
     url: `/v1/confirm-email-codes`,
     data: toUnderScoreCase(data),
@@ -50,7 +51,7 @@ const getResetPasswordVCode = ({
   data: GetResetPasswordVCodeData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ wait: number }>({
     method: 'POST',
     url: `/v1/reset-password-codes`,
     data: toUnderScoreCase(data),
@@ -64,7 +65,7 @@ const getResetEmailVCode = ({
 }: {
   configs?: AxiosRequestConfig;
 } = {}) => {
-  return request({
+  return request<{ wait: number }>({
     method: 'POST',
     url: `/v1/reset-email-codes`,
     ...configs,
@@ -86,7 +87,7 @@ const register = ({
   data: RegisterData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<AuthSession>({
     method: 'POST',
     url: `/v1/users`,
     data: toUnderScoreCase(data),
@@ -108,7 +109,7 @@ const resetPassword = ({
   data: ResetPasswordData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<AuthSession>({
     method: 'DELETE',
     url: `/v1/user/password`,
     data: toUnderScoreCase(data),
@@ -131,7 +132,7 @@ const login = ({
   data: LoginData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request<{ token: string }>({
+  return request<{ token: string; expires_at: number }>({
     method: 'POST',
     url: `/v1/user/token`,
     data: toUnderScoreCase(data),

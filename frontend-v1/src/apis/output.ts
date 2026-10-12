@@ -15,13 +15,18 @@ export interface APIOutput {
   status: OUTPUT_STATUS;
   fileIDsInclude: string[];
   fileIDsExclude: string[];
-  statusDetails: {
+  statusDetails?: {
     id: OUTPUT_STATUS;
     name: string;
     intro: string;
   }[];
   link?: string;
   createTime: string;
+  resourceID?: string;
+  taskID?: string;
+  expiresAt?: number;
+  lastError?: string;
+  progress?: number;
 }
 
 /** 获取导出 */

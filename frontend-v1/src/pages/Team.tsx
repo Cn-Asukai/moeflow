@@ -31,6 +31,7 @@ import { can } from '../utils/user';
 import ProjectSet from './ProjectSet';
 import ProjectSetSetting from './ProjectSetSetting';
 
+import { RecycleBin } from '@/components/shared/RecycleBin';
 /** 团队页的属性接口 */
 interface TeamProps {}
 /**
@@ -118,6 +119,7 @@ const Team: FC<TeamProps> = () => {
     >
       {currentTeam ? (
         <>
+          <RecycleBin teamID={teamID} onRestore={() => dispatch(setCurrentTeamSaga({ id: teamID }))} />
           {!isMobile && (
             <div className="Team__List">
               <ListItem

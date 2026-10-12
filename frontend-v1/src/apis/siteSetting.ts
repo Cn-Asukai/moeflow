@@ -24,7 +24,7 @@ const editSiteSetting = ({
   data: APISiteSetting;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<APISiteSetting>({
     method: 'PUT',
     url: `/v1/admin/site-setting`,
     data: toUnderScoreCase(data),

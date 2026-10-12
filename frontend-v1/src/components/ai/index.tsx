@@ -1,16 +1,11 @@
 import { Modal } from 'antd';
 import { File as MFile, Target } from '@/interfaces';
-import { createDebugLogger } from '@/utils/debug-logger';
 import { ModalStaticFunctions } from 'antd/lib/modal/confirm';
 
-import { ModelConfigForm } from './ModelConfigForm';
 import { BatchTranslateModalContent } from './BatchTranslateModal';
 import { useMemo } from 'react';
-import { LLMConf, llmPresets } from '@/services/ai/llm_preprocess';
-import { llmConfStorage } from '@/utils/storage';
 import { IntlShape, useIntl } from 'react-intl';
 
-const debugLogger = createDebugLogger('components:project:FileListAiTranslate');
 
 export type ModalHandle = ReturnType<typeof Modal.confirm>;
 
@@ -20,7 +15,6 @@ interface TranslationCallbacks {
 
 interface TranslatorApi {
   start(callbacks: TranslationCallbacks): Promise<void>;
-  testModel?(modelConf: LLMConf): Promise<{ worked: boolean; message: string }>;
 }
 function bind(
   files: MFile[],
@@ -30,46 +24,15 @@ function bind(
 ): TranslatorApi {
   return {
     start,
-    // testModel,
   };
   async function start(callbacks: TranslationCallbacks) {
-    const llmConf = await new Promise<LLMConf | null>((resolve, reject) => {
-      let confValue: LLMConf = llmConfStorage.load() ?? {
-        ...llmPresets.at(0)!,
-      };
-      const onChange = (conf: LLMConf) => {
-        debugLogger('model configured', conf);
-        confValue = conf;
-        if (confValue.model && confValue.baseUrl && confValue.apiKey) {
-          handle.update({ okButtonProps: {} });
-        }
-      };
-      const handle = modal.confirm({
-        icon: null,
-        content: (
-          <ModelConfigForm initialValue={confValue} onChange={onChange} />
-        ),
-        okText: formatMessage({ id: 'fileList.aiTranslate.startTranslate' }),
-        okButtonProps: { disabled: true },
-        onOk: () => {
-          resolve(confValue);
-        },
-        onCancel: () => {
-          resolve(null);
-        },
-      });
-    });
-    if (!llmConf) {
-      return;
-    }
-    llmConfStorage.save(llmConf);
 
     await new Promise<boolean>((resolve) => {
       const handle = modal.confirm({
         icon: null,
+        title: formatMessage({ id: 'fileList.aiTranslate.startTranslate' }),
         content: (
           <BatchTranslateModalContent
-            llmConf={llmConf}
             files={files}
             target={target}
             onFileSaved={callbacks.onFileSaved}

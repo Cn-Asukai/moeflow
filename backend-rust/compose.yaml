@@ -1,0 +1,132 @@
+name: moeflow
+services:
+  mongo-key:
+    image: ${MONGO_IMAGE:-mongo:7.0}
+    user: "0:0"
+    entrypoint: ["bash", "-ec"]
+    command:
+      - |
+        if [ ! -s /keys/keyfile ]; then
+          umask 077
+          openssl rand -base64 756 > /keys/keyfile
+        fi
+        chown 999:999 /keys/keyfile
+        chmod 400 /keys/keyfile
+    volumes:
+      - mongo-key:/keys
+    restart: "no"
+  mongo:
+    image: ${MONGO_IMAGE:-mongo:7.0}
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--auth", "--keyFile", "/run/mongo-key/keyfile"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-moeflow}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?Set MONGO_PASSWORD in .env}
+    volumes:
+      - mongo-data:/data/db
+      - mongo-key:/run/mongo-key:ro
+    depends_on:
+      mongo-key:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'const r=db.adminCommand({getCmdLineOpts:1}); quit(r.ok && r.parsed.replication && r.parsed.replication.replSet === \"rs0\" ? 0 : 1)' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 30
+    restart: unless-stopped
+  mongo-init:
+    image: ${MONGO_IMAGE:-mongo:7.0}
+    environment:
+      MONGO_USERNAME: ${MONGO_USERNAME:-moeflow}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:?Set MONGO_PASSWORD in .env}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD in .env}
+    entrypoint: ["bash", "-ec"]
+    command:
+      - |
+        mongosh --host mongo --quiet --username "$$MONGO_USERNAME" --password "$$MONGO_PASSWORD" --authenticationDatabase admin --eval '
+          try { rs.status(); } catch (e) {
+            if (e.code === 94) rs.initiate({_id:"rs0",members:[{_id:0,host:"mongo:27017"}]});
+            else throw e;
+          }
+          let ready = false;
+          for (let i=0; i<60; i++) {
+            if (db.hello().isWritablePrimary) { ready=true; break; }
+            sleep(1000);
+          }
+          if (!ready) throw new Error("Mongo replica set did not elect a primary");
+          const app = db.getSiblingDB("moeflow");
+          if (!app.getUser("moeflow_app")) app.createUser({user:"moeflow_app",pwd:process.env.MONGO_APP_PASSWORD,roles:[{role:"readWrite",db:"moeflow"}]});
+        '
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: "no"
+  backend:
+    build:
+      context: .
+      args:
+        RUST_IMAGE: ${RUST_IMAGE:-rust:1.90-bookworm}
+        RUNTIME_IMAGE: ${RUNTIME_IMAGE:-debian:bookworm-slim}
+    environment:
+      LISTEN_ADDR: 0.0.0.0:8000
+      MONGODB_URI: mongodb://moeflow_app:${MONGO_APP_PASSWORD:?Set MONGO_APP_PASSWORD}@mongo:27017/?authSource=moeflow&replicaSet=rs0
+      MONGODB_DATABASE: moeflow
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-604800}
+      COS_REGION: ${COS_REGION:-}
+      COS_BUCKET: ${COS_BUCKET:-}
+      COS_SECRET_ID: ${COS_SECRET_ID:-}
+      COS_SECRET_KEY: ${COS_SECRET_KEY:-}
+      COS_ENDPOINT: ${COS_ENDPOINT:-}
+      USER_STORAGE_QUOTA_BYTES: ${USER_STORAGE_QUOTA_BYTES:-1073741824}
+      TEAM_STORAGE_QUOTA_BYTES: ${TEAM_STORAGE_QUOTA_BYTES:-107374182400}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5368709120}
+      MAX_ACTIVE_UPLOADS_PER_USER: ${MAX_ACTIVE_UPLOADS_PER_USER:-8}
+      MAX_ACTIVE_UPLOADS_PER_TEAM: ${MAX_ACTIVE_UPLOADS_PER_TEAM:-32}
+      MAX_EXPORT_INPUT_BYTES: ${MAX_EXPORT_INPUT_BYTES:-536870912}
+      MAX_EXPORT_TEXT_BYTES: ${MAX_EXPORT_TEXT_BYTES:-67108864}
+      MAX_EXPORT_SOURCES: ${MAX_EXPORT_SOURCES:-100000}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-MoeFlow <noreply@moeflow.local>}
+      SMTP_TLS: ${SMTP_TLS:-none}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      JOB_CONCURRENCY: ${JOB_CONCURRENCY:-4}
+      JOB_HEAVY_CONCURRENCY: ${JOB_HEAVY_CONCURRENCY:-1}
+      GC_ENABLED: ${GC_ENABLED:-true}
+      RESOURCE_PROTECTION_ENABLED: ${RESOURCE_PROTECTION_ENABLED:-true}
+      RESOURCE_BACKUP_CONFIRMED: ${RESOURCE_BACKUP_CONFIRMED:-false}
+      RUST_LOG: ${RUST_LOG:-moeflow_backend=info,tower_http=info}
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    stop_grace_period: 45s
+    init: true
+  frontend:
+    build:
+      context: ../frontend-v1
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
+        NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.28-alpine}
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+  mailpit:
+    image: ${MAILPIT_IMAGE:-ghcr.io/axllent/mailpit:v1.27}
+    ports:
+      - "127.0.0.1:${MAIL_UI_PORT:-8025}:8025"
+    restart: unless-stopped
+volumes:
+  mongo-data:
+  mongo-key:

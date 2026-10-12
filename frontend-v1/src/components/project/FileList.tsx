@@ -2,7 +2,7 @@ import { css, Global } from '@emotion/core';
 import { Button as AntdButton, Drawer, message, Modal, Spin } from 'antd';
 import loadImage from 'blueimp-load-image';
 import classNames from 'classnames';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FilePond } from 'react-filepond';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,7 +10,7 @@ import { useHistory } from 'react-router-dom';
 import { Button, EmptyTip, List } from '@/components';
 import { OutputList } from './OutputList';
 import { FileItem } from './FileItem';
-import { api, resultTypes } from '@/apis';
+import { api, isFailureResult, resultTypes } from '@/apis';
 import {
   FILE_NOT_EXIST_REASON,
   FILE_SAFE_STATUS,
@@ -18,6 +18,7 @@ import {
   IMAGE_COVER,
   PARSE_STATUS,
   PROJECT_PERMISSION,
+  PROJECT_STATUS,
 } from '@/constants';
 import { FC, File as MFile, Project, Target } from '@/interfaces';
 import { AppState } from '@/store';
@@ -30,6 +31,7 @@ import { ListPageSpec } from '@/components/shared/List';
 import { FilePondFile } from 'filepond';
 import { createDebugLogger } from '@/utils/debug-logger';
 import { useAiTranslate } from '@/components/ai';
+import { directUpload } from '@/apis/upload';
 
 /** 文件列表的属性接口 */
 interface FileListProps {
@@ -55,11 +57,6 @@ export const FileList: FC<FileListProps> = ({
   const [loading, setLoading] = useState(true);
   const [listMode] = useState<'image' | 'text'>('image');
   const [total, setTotal] = useState(0); // 元素总个数
-  const runtimeConfig = useSelector(
-    (state: AppState) => state.site.runtimeConfig,
-  );
-  const uploadAPI = `${runtimeConfig.baseURL}/v1/projects/${project.id}/files`;
-  const token = useSelector((state: AppState) => state.user.token);
   const platform = useSelector((state: AppState) => state.site.platform);
   const isMobile = platform === 'mobile';
   const [outputDrawerVisible, setOutputDrawerVisible] = useState(false);
@@ -67,9 +64,39 @@ export const FileList: FC<FileListProps> = ({
   const coverHeight = IMAGE_COVER.HEIGHT;
 
   const [items, setItems] = useState<MFile[]>([]);
+  const [currentParentID, setCurrentParentID] = useState<string>();
+  const [currentParentName, setCurrentParentName] = useState('');
+  useEffect(() => { setCurrentParentID(undefined); setCurrentParentName(''); }, [project.id]);
+  const visibleItems = items.filter((item) => currentParentID === undefined || item.parentID === currentParentID);
   const [spinningIDs, setSpinningIDs] = useState<string[]>([]); // 删除请求中
   const filePondRef = useRef<FilePond | null>();
   const currentPageSpecRef = useRef<ListPageSpec | null>(null);
+  const pendingTextKey = items.filter((item) => item.type === FILE_TYPE.TEXT && !item.uploading && (item.parseStatus === PARSE_STATUS.QUEUING || item.parseStatus === PARSE_STATUS.PARSING)).map((item) => item.id).sort().join(',');
+  useEffect(() => {
+    if (!pendingTextKey || project.status === PROJECT_STATUS.FINISHED) return;
+    const controller = new AbortController();
+    const pending = new Set(pendingTextKey.split(','));
+    let timer: number;
+    async function poll() {
+      await Promise.all(Array.from(pending, async (id) => {
+        try {
+          const response = await api.file.getFile({ fileID: id, params: { target: target.id }, configs: { signal: controller.signal } });
+          if (controller.signal.aborted) return;
+          const file = toLowerCamelCase(response.data);
+          if ((file.parseStatus !== PARSE_STATUS.QUEUING && file.parseStatus !== PARSE_STATUS.PARSING) || file.activated === false) pending.delete(id);
+          setItems((current) => file.activated === false ? current.filter((item) => item.id !== id) : current.map((item) => item.id === id && !item.uploading ? { ...item, ...file } : item));
+        } catch (error: unknown) {
+          if (!controller.signal.aborted && isFailureResult(error) && error.type === resultTypes.BASIC_FAILURE && error.data.code === 404) {
+            pending.delete(id);
+            setItems((current) => current.filter((item) => item.id !== id));
+          }
+        }
+      }));
+      if (!controller.signal.aborted && pending.size) timer = window.setTimeout(poll, 2000);
+    }
+    timer = window.setTimeout(poll, 1000);
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [pendingTextKey, project.id, project.status, target.id]);
 
   const defaultPage = useSelector(
     (state: AppState) => state.file.filesState.page,
@@ -129,6 +156,7 @@ export const FileList: FC<FileListProps> = ({
 
   /** 处理文件添加 */
   const handleFileAdd = (error: any, file: FilePondFile) => {
+    file.setMetadata('parentID', currentParentID || null);
     // 加载预览图
     const realFile = file.file;
     if (/^image.+/.test(file.file.type)) {
@@ -171,7 +199,7 @@ export const FileList: FC<FileListProps> = ({
       parseStatusDetailName: formatMessage({ id: 'file.parseNotStart' }),
       parseErrorTypeDetailName: '',
       url: '',
-      parentID: null,
+      parentID: currentParentID || null,
       fileTargetCache: {
         translatedSourceCount: 0,
         checkedSourceCount: 0,
@@ -200,6 +228,7 @@ export const FileList: FC<FileListProps> = ({
           limit: pageSize,
           word,
           target: target.id,
+          parentID: currentParentID,
         },
         configs: {
           cancelToken,
@@ -207,7 +236,7 @@ export const FileList: FC<FileListProps> = ({
       })
       .then((result) => {
         const data = (result.data as MFile[]).map((d) => toLowerCamelCase(d));
-        setItems(data);
+        setItems((current) => [...current.filter((item) => item.uploading && !data.some((file) => file.id === item.id)), ...data]);
         setTotal(Number(result.headers['x-pagination-count']));
         setLoading(false);
       })
@@ -300,6 +329,7 @@ export const FileList: FC<FileListProps> = ({
       />
       <FilePond
         name="file"
+        disabled={!can(project, PROJECT_PERMISSION.ADD_FILE)}
         className="FileList__FilePond"
         ref={(ref) => (filePondRef.current = ref)}
         css={css`
@@ -310,6 +340,7 @@ export const FileList: FC<FileListProps> = ({
         allowMultiple
         maxParallelUploads={5}
         onaddfile={handleFileAdd}
+        onprocessfilestart={(file) => setItems((current) => current.map((item) => item.id === file.id ? { ...item, uploading: true, uploadState: 'uploading', uploadPercent: 0 } : item))}
         // 上传中
         onprocessfileprogress={(file, progress) => {
           setItems((items) =>
@@ -329,9 +360,13 @@ export const FileList: FC<FileListProps> = ({
           if (error) return;
           const result = toLowerCamelCase(JSON.parse(file.serverId) as MFile);
           setItems((items) => {
+            const revision = result.revision;
+            if (result.revisionFamilyID && revision !== undefined && items.some((item) => item.id !== file.id && item.revisionFamilyID === result.revisionFamilyID && item.revision !== undefined && item.revision > revision)) {
+              return items.filter((item) => item.id !== file.id);
+            }
             // 覆盖时删除列表中原来的文件
             const itemsWithoutSameID = items.filter(
-              (item) => item.id !== result.id,
+              (item) => item.id === file.id || (item.id !== result.id && (!result.revisionFamilyID || item.revisionFamilyID !== result.revisionFamilyID)),
             );
             const updated = itemsWithoutSameID.map((item) => {
               if (item.id === file.id) {
@@ -340,6 +375,7 @@ export const FileList: FC<FileListProps> = ({
                   ...item,
                   ...result,
                   uploadState: 'success',
+                  uploading: false,
                 } as MFile;
               }
               return item;
@@ -365,13 +401,20 @@ export const FileList: FC<FileListProps> = ({
           }
         }}
         server={{
-          process: {
-            url: uploadAPI,
-            headers: { Authorization: `Bearer ${token}` },
+          process: (_name, file, _metadata, load, error, progress, abort) => {
+            const controller = new AbortController();
+            directUpload(file, { purpose: 'file', project_id: project.id, parent_id: typeof _metadata.parentID === 'string' ? _metadata.parentID : undefined, name: file.name }, {
+              signal: controller.signal,
+              onUploadProgress: (event) => progress(!!event.total, event.loaded, event.total || file.size),
+            }).then((result) => load(JSON.stringify(result.data))).catch((failure) => {
+              if (!controller.signal.aborted) error(failure?.data?.message || failure?.message || 'Upload failed');
+            });
+            return { abort: () => { controller.abort(); abort(); } };
           },
         }}
       />
       <div className="FileList__Header">
+        {currentParentID && <Button onClick={() => { setCurrentParentID(undefined); setCurrentParentName(''); dispatch(setFilesState({ page: 1, scrollTop: 0 })); }}>Back to all files · {currentParentName}</Button>}
         <Button
           className="FileList__ChangeTargetButton"
           icon="exchange-alt"
@@ -384,7 +427,7 @@ export const FileList: FC<FileListProps> = ({
             ? formatMessage({ id: 'project.changeTarget' }) + ' - '
             : '') + target?.language.i18nName}
         </Button>
-        {aiEnabled && aiTranslateApi && (
+        {aiEnabled && aiTranslateApi && can(project, PROJECT_PERMISSION.ADD_LABEL) && can(project, PROJECT_PERMISSION.ADD_TRA) && (
           <Button
             tooltipProps={{
               overlay: formatMessage({ id: 'fileList.aiTranslate.buttonTip' }),
@@ -436,7 +479,7 @@ export const FileList: FC<FileListProps> = ({
           <AntdButton
             type="link"
             onClick={() => {
-              const idsOnThisPage = items.map((item) => item.id);
+              const idsOnThisPage = visibleItems.map((item) => item.id);
               const selectedIdsOnOtherPages = selectedFileIds.filter(
                 (id) => !idsOnThisPage.includes(id),
               );
@@ -455,7 +498,7 @@ export const FileList: FC<FileListProps> = ({
           <AntdButton
             type="link"
             onClick={() => {
-              const idsOnThisPage = items.map((item) => item.id);
+              const idsOnThisPage = visibleItems.map((item) => item.id);
               const selectedIdsOnThisPage = selectedFileIds.filter((id) =>
                 idsOnThisPage.includes(id),
               );
@@ -485,12 +528,13 @@ export const FileList: FC<FileListProps> = ({
         </div>
       )}
       <List
-        id={project.id}
+        key={`${project.id}:${currentParentID || 'all'}`}
+        id={`${project.id}:${currentParentID || 'all'}`}
         className="FileList__List"
         onChange={loadPage}
         loading={loading}
         total={total}
-        items={items}
+        items={visibleItems}
         itemHeight={250}
         multiColumn
         columnWidth={200}
@@ -506,6 +550,17 @@ export const FileList: FC<FileListProps> = ({
                 file={file}
                 hasTarget={Boolean(target)}
                 onClick={() => {
+                  if (file.uploadState === 'failure') {
+                    const retry = filePondRef.current?.processFile(file.id);
+                    if (retry) void retry.catch(() => message.error('Upload retry failed. Click the file to try again.'));
+                    return;
+                  }
+                  if (file.type === FILE_TYPE.FOLDER) {
+                    setCurrentParentID(file.id);
+                    setCurrentParentName(file.name);
+                    dispatch(setFilesState({ page: 1, scrollTop: 0 }));
+                    return;
+                  }
                   (file.uploadState === undefined ||
                     file.uploadState === 'success') &&
                     openInTranslator(file);
@@ -530,11 +585,17 @@ export const FileList: FC<FileListProps> = ({
                   }
                 }}
                 deleteButtonVisible={
-                  can(project, PROJECT_PERMISSION.DELETE_FILE) &&
-                  (file.uploadState === undefined ||
-                    file.uploadState === 'success')
+                  file.uploadState === 'failure' || (can(project, PROJECT_PERMISSION.DELETE_FILE) &&
+                  (file.uploadState === undefined || file.uploadState === 'success'))
                 }
                 onDeleteButtonClick={() => {
+                  if (file.uploadState === 'failure') {
+                    const removal = filePondRef.current?.removeFile(file.id, { revert: false });
+                    void Promise.resolve(removal).catch(() => message.error('Could not remove local upload'));
+                    setItems((current) => current.filter((item) => item.id !== file.id));
+                    dispatch(setFilesState({ selectedFileIds: selectedFileIds.filter((id) => id !== file.id) }));
+                    return;
+                  }
                   deleteFile(file);
                 }}
               />
@@ -562,7 +623,7 @@ export const FileList: FC<FileListProps> = ({
             />
           );
         }}
-        defaultPage={defaultPage}
+        defaultPage={currentParentID ? 1 : defaultPage}
         onPageChange={(page) => {
           dispatch(setFilesState({ page }));
         }}

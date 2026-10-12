@@ -10,17 +10,18 @@ import { getCancelToken } from '@/utils/api';
 import { CancelToken } from 'axios';
 import { useRouteMatch } from 'react-router-dom';
 
+import { toLowerCamelCase } from '@/utils';
 /** 接口返回的类型格式 */
 export interface TypeData {
-  id: string;
-  system_code: string;
+  id: string | number;
+  systemCode?: string;
   name: string;
 }
 /** 用于 /types 接口类型选择单选组的属性接口 */
 export interface TypeRadioGroupProps extends Omit<RadioGroupProps, 'onChange'> {
   typeName: TypeNames;
   groupType: GroupTypes;
-  onChange?: (value: string) => void;
+  onChange?: (value: string | number) => void;
   onTypeChange?: (value: any) => void;
   /* 自动从 Config 中获取并设置默认值 */
   useDefaultType?: boolean;
@@ -53,9 +54,9 @@ export const TypeRadioGroup: FC<TypeRadioGroupProps> = ({
       if (useDefaultType && types) {
         const defaultType = types.find((x) => {
           if (typeName === 'systemRole') {
-            return x.system_code === getDefaultID();
+            return 'systemCode' in x && x.systemCode === getDefaultID();
           } else {
-            return x.id === getDefaultID();
+            return String(x.id) === String(getDefaultID());
           }
         });
         if (defaultType) changeType(defaultType);
@@ -67,10 +68,8 @@ export const TypeRadioGroup: FC<TypeRadioGroupProps> = ({
 
   /** 处理改变 */
   const handelChange = (e: RadioChangeEvent) => {
-    const type = (types as TypeData[]).find(
-      (x) => x.id === e.target.value,
-    ) as TypeData;
-    changeType(type);
+    const type = types?.find((option) => option.id === e.target.value);
+    if (type) changeType(type);
   };
 
   /** 获得默认 ID */
@@ -96,8 +95,9 @@ export const TypeRadioGroup: FC<TypeRadioGroupProps> = ({
         },
       })
       .then((result) => {
-        setTypes(result.data as TypeData[]);
-        return result.data as TypeData[];
+        const normalized = toLowerCamelCase(result.data);
+        setTypes(normalized);
+        return normalized;
       })
       .catch((error) => {
         error.default();

@@ -14,7 +14,7 @@ export interface RuntimeConfig {
  * 2. value from vite config
  * 3. fallback
  */
-export const runtimeConfig = lazyThenable<RuntimeConfig>(async () => {
+export const runtimeConfig = lazyThenable<Promise<RuntimeConfig>>(async () => {
   const overriden: RuntimeConfig = await fetch('/moeflow-runtime-config.json')
     .then((res) => res.json())
     .catch(() => null);

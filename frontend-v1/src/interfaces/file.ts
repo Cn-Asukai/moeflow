@@ -17,6 +17,10 @@ export interface File {
   name: string;
   saveName: string;
   type: FileTypes;
+  size?: number; // Bytes, never KiB.
+  revision?: number;
+  revisionFamilyID?: string;
+  activated?: boolean;
   sourceCount: number;
   translatedSourceCount: number;
   checkedSourceCount: number;

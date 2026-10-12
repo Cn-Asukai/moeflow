@@ -69,8 +69,9 @@ export const MemberList: FC<MemberListProps> = ({
         },
       })
       .then((result) => {
-        setTypes(result.data);
-        return result.data as TypeData[];
+        const roles = toLowerCamelCase(result.data);
+        setTypes(roles);
+        return roles;
       })
       .catch((error) => {
         error.default();

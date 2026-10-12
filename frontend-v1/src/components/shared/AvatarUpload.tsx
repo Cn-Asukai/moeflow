@@ -7,13 +7,12 @@ import ImgCrop from 'antd-img-crop';
 import { Button, Upload } from 'antd';
 
 import { UploadOutlined } from '@ant-design/icons';
-import { runtimeConfig } from '../../configs';
+import { directUpload } from '@/apis/upload';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppState } from '../../store';
 import { setUserInfo } from '../../store/user/slice';
 import { setCurrentTeamInfo } from '../../store/team/slice';
 import { Avatar } from '..';
-import { usePromised } from '@jokester/ts-commonutil/lib/react/hook/use-promised';
 /** 头像上传的属性接口 */
 interface AvatarUploadProps {
   type: 'user' | 'team';
@@ -28,7 +27,6 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
   disabled = false,
   className,
 }) => {
-  const runtimeConfigLoaded = usePromised(runtimeConfig);
   const { formatMessage } = useIntl(); // i18n
   const dispatch = useDispatch();
   const [status, setStatus] = useState<
@@ -67,19 +65,20 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
           size="large"
         />
       )}
-      {!disabled && runtimeConfigLoaded.fulfilled && (
+      {!disabled && (
         <ImgCrop rotate>
           <Upload
             name="file"
-            action={`${runtimeConfigLoaded.value.baseURL}/v1/avatar`}
-            method="PUT"
             showUploadList={false}
-            data={{
-              type,
-              id,
-            }}
-            headers={{
-              Authorization: `Bearer ${currentUser.token}`,
+            customRequest={({ file, onProgress, onSuccess, onError }) => {
+              if (!(file instanceof Blob)) { onError?.(new Error('Avatar must be a file')); return; }
+              const controller = new AbortController();
+              const name = file instanceof File ? file.name : file.type === 'image/jpeg' ? 'avatar.jpg' : 'avatar.png';
+              directUpload<{ avatar: string }>(file, { purpose: type === 'user' ? 'user_avatar' : 'team_avatar', team_id: type === 'team' ? id : undefined, name }, {
+                signal: controller.signal,
+                onUploadProgress: (event) => onProgress?.({ percent: event.total ? event.loaded / event.total * 100 : 0 }),
+              }).then((result) => onSuccess?.(result.data)).catch((error) => onError?.(error));
+              return { abort: () => controller.abort() };
             }}
             onChange={(info) => {
               setStatus(info.file.status);

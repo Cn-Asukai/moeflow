@@ -1,7 +1,8 @@
+import type { SagaIterator, Task } from 'redux-saga';
 import { call, cancel, fork, join, takeEvery } from 'redux-saga/effects';
 
 interface Tasks {
-  [propName: string]: any;
+  [propName: string]: Task;
 }
 export function takeLeadingPerKey(
   patternOrChannel: any,
@@ -9,11 +10,11 @@ export function takeLeadingPerKey(
   keySelector: any,
   ...args: any[]
 ) {
-  return fork(function* () {
+  return fork(function* (): SagaIterator {
     const tasks: Tasks = {};
 
-    yield takeEvery(patternOrChannel, function* (action) {
-      const key = yield call(keySelector, action);
+    yield takeEvery(patternOrChannel, function* (action): SagaIterator {
+      const key: string = yield call(keySelector, action);
 
       if (!(tasks[key] && tasks[key].isRunning())) {
         tasks[key] = yield fork(worker, ...args, action);
@@ -34,10 +35,10 @@ export function takeLatestPerKey(
   keySelector: any,
   ...args: any[]
 ) {
-  return fork(function* () {
+  return fork(function* (): SagaIterator {
     const tasks: Tasks = {};
 
-    yield takeEvery(patternOrChannel, function* (action) {
+    yield takeEvery(patternOrChannel, function* (action): SagaIterator {
       const key: string = yield call(keySelector, action);
 
       if (tasks[key]) {

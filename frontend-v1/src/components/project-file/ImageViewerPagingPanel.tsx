@@ -11,6 +11,7 @@ import { clearClickEffect, clickEffect } from '@/utils/style';
 import { AppState } from '@/store';
 import { useSelector } from 'react-redux';
 import { ImageSelect } from './ImageSelect';
+import { routes } from '@/pages/routes';
 
 /** 图片浏览器设置面板的属性接口 */
 interface ImageViewerPagingPanelProps {
@@ -50,7 +51,7 @@ export const ImageViewerPagingPanel: FC<ImageViewerPagingPanelProps> = ({
   };
 
   const goImage = (imageID: string) => {
-    history.replace(`/image-translator/${imageID}-${targetID}`);
+    history.replace(routes.imageTranslator.build(imageID, targetID));
   };
 
   // 快捷键 - 上一页

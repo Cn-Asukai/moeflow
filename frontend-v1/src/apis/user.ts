@@ -83,7 +83,7 @@ const editUserPassword = ({
   data: EditUserPasswordData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string }>({
     method: 'PUT',
     url: `/v1/user/password`,
     data: toUnderScoreCase(data),
@@ -105,7 +105,7 @@ const editUserEmail = ({
   data: EditUserEmailData;
   configs?: AxiosRequestConfig;
 }) => {
-  return request({
+  return request<{ message: string; user: APIUser }>({
     method: 'PUT',
     url: `/v1/user/email`,
     data: toUnderScoreCase(data),
