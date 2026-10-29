@@ -5,7 +5,11 @@ import { ValidateStatus as AntdValidateStatus } from 'antd/lib/form/FormItem';
 import React, { useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { CAPTCHAInput } from '@/components';
-import { CAPTCHAInputRef, CAPTCHAInputValue } from './CAPTCHAInput';
+import {
+  CAPTCHA_LENGTH,
+  CAPTCHAInputRef,
+  CAPTCHAInputValue,
+} from './CAPTCHAInput';
 import style from '@/style';
 import { FC } from '@/interfaces';
 import { clickEffect } from '@/utils/style';
@@ -76,7 +80,7 @@ export const CAPTCHAModal: FC<CAPTCHAModalProps> = ({
   /** 提交 */
   const submit = () => {
     // 验证
-    if (captcha.value.length === 4) {
+    if (captcha.value.length === CAPTCHA_LENGTH) {
       // 格式正确
       if (onSubmit) {
         onSubmit({

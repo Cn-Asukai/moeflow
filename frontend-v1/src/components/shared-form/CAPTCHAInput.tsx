@@ -11,7 +11,7 @@ import style from '@/style';
 import { getCancelToken } from '@/utils/api';
 import { clickEffect, imageClickEffect } from '@/utils/style';
 
-const CAPTCHA_LENGTH = 6;
+export const CAPTCHA_LENGTH = 6;
 
 /** 用于 Form.Item 校验验证码，rules={[{validator: checkCAPTCHA}]} */
 export const checkCAPTCHA = (rule: any, captcha: CAPTCHAInputValue) => {
