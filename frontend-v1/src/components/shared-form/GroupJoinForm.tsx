@@ -48,7 +48,7 @@ export const GroupJoinForm: FC<GroupJoinFormProps> = ({
             },
           ]}
         >
-          <Input maxLength={24} />
+          <Input maxLength={36} />
         </FormItem>
         <FormItem>
           <Button type="primary" block htmlType="submit">

@@ -763,8 +763,8 @@ site.joinTeam:
   zhCn: 加入团队
   en: Join Team
 form.idTip:
-  zhCn: ID 的长度为 24, 且只包含数字及a-f/A-F的字母
-  en: The ID must be 24 characters long and contain only numbers and letters a-f/A-F.
+  zhCn: 请输入有效的 UUID，例如 12345678-1234-4234-8234-123456789abc
+  en: Enter a valid UUID, for example 12345678-1234-4234-8234-123456789abc.
 error.joinLink:
   zhCn: 加入链接无效
   en: Invalid link added

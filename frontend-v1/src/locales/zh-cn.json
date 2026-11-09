@@ -249,7 +249,7 @@
   "group.joinTip": "请输入加入 {groupName} 的申请理由：",
   "group.joinTipNoNeedCheck": "{groupName} 可以直接加入，您确定加入吗？",
   "site.joinTeam": "加入团队",
-  "form.idTip": "ID 的长度为 24, 且只包含数字及a-f/A-F的字母",
+  "form.idTip": "请输入有效的 UUID，例如 12345678-1234-4234-8234-123456789abc",
   "error.joinLink": "加入链接无效",
   "team.notExist": "团队不存在",
   "team.notAllowAllUserJoin": "此团队未开放申请加入",

@@ -249,7 +249,7 @@
   "group.joinTip": "Please enter your reason for joining {groupName}:",
   "group.joinTipNoNeedCheck": "{groupName} is open to join. Are you sure you want to join?",
   "site.joinTeam": "Join Team",
-  "form.idTip": "The ID must be 24 characters long and contain only numbers and letters a-f/A-F.",
+  "form.idTip": "Enter a valid UUID, for example 12345678-1234-4234-8234-123456789abc.",
   "error.joinLink": "Invalid link added",
   "team.notExist": "Team does not exist",
   "team.notAllowAllUserJoin": "This team is not open for applications",
