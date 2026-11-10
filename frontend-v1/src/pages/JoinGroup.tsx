@@ -35,23 +35,29 @@ const JoinGroup: FC<JoinGroupProps> = ({ className }) => {
   const [group, setGroup] = useState<APIGroupPublicInfo>();
   const [applying, setApplying] = useState(false);
   const [reason, setReason] = useState('');
+  const [requestVersion, setRequestVersion] = useState(0);
   const [status, setStatus] = useState<
     | 'loading'
     | 'joined'
     | 'joinLinkError'
     | 'groupNotExistError'
     | 'groupNotAllowJoinError'
+    | 'loadError'
     | 'ok'
   >('loading');
 
   useEffect(() => {
+    const controller = new AbortController();
+    setStatus('loading');
+    setGroup(undefined);
     if (
       (groupType === 'team' || groupType === 'project') &&
       ID_REGEX.test(groupID)
     ) {
       apis
-        .getGroupPublicInfo({ groupType, groupID })
+        .getGroupPublicInfo({ groupType, groupID, configs: { signal: controller.signal } })
         .then((result) => {
+          if (controller.signal.aborted) return;
           const data = toLowerCamelCase(result.data);
           setGroup(data);
           if (data.joined) {
@@ -61,23 +67,27 @@ const JoinGroup: FC<JoinGroupProps> = ({ className }) => {
           }
         })
         .catch((result: FailureResults) => {
+          if (controller.signal.aborted) return;
           // 团体不存在
           if (result.type === 'BASIC_FAILURE') {
-            if (result.data.code === 3001 || result.data.code === 4001) {
+            if (result.data.code === 404) {
               setStatus('groupNotExistError');
-            } else if (result.data.code === 5014) {
+            } else if (result.data.code === 103) {
               setStatus('groupNotAllowJoinError');
             } else {
+              setStatus('loadError');
               result.default();
             }
           } else {
+            setStatus('loadError');
             result.default();
           }
         });
     } else {
       setStatus('joinLinkError');
     }
-  }, [groupType, groupID]);
+    return () => controller.abort();
+  }, [groupType, groupID, requestVersion]);
 
   /** 处理提交申请 */
   const handleApply = () => {
@@ -135,6 +145,12 @@ const JoinGroup: FC<JoinGroupProps> = ({ className }) => {
       `}
     >
       {status === 'loading' && <Spin spinning />}
+      {status === 'loadError' && (
+        <EmptyTip
+          text={formatMessage({ id: 'group.loadFailed' })}
+          buttons={<Button onClick={() => setRequestVersion((version) => version + 1)}>{formatMessage({ id: 'site.retry' })}</Button>}
+        />
+      )}
       {status === 'joinLinkError' && (
         <EmptyTip
           text={formatMessage({ id: 'error.joinLink' })}

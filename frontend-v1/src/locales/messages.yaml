@@ -72,6 +72,15 @@ auth.captchaRefreshTip:
 api.networkError:
   zhCn: 网络错误
   en: Network Error
+auth.passwordLength:
+  zhCn: 密码长度须为 8–128 字节，英文、数字各占 1 字节
+  en: Passwords must contain 8–128 bytes; each English letter or digit uses one byte.
+group.loadFailed:
+  zhCn: 加载失败，请重试
+  en: Unable to load. Please try again.
+site.retry:
+  zhCn: 重试
+  en: Retry
 form.formatWrong:
   zhCn: 格式错误
   en: Invalid format

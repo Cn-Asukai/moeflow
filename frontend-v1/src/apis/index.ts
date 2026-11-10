@@ -103,6 +103,7 @@ export interface BasicSuccessResult<T = unknown> {
 
 /** 基础错误响应结果的数据 */
 interface BasicFailureResultData {
+  retry_after?: number;
   /** 错误代码 */
   code: number;
   /** 错误类名 */

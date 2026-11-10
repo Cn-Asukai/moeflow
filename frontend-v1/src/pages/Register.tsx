@@ -1,3 +1,4 @@
+import { passwordRules } from '@/components/shared-form/passwordRules';
 import { css } from '@emotion/core';
 import {
   Button,
@@ -136,7 +137,7 @@ const Register: FC<RegisterProps> = () => {
           </FormItem>
           <FormItem
             name="password"
-            rules={[{ required: true }, { min: 6 }, { max: 60 }]}
+            rules={passwordRules}
           >
             <Input.Password
               prefix={formatMessage({ id: 'site.password' })}

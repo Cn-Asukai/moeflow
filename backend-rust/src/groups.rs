@@ -1002,12 +1002,28 @@ pub async fn handle(r: &Request) -> Result<Option<Reply>> {
                 }
             }
             "invitations" | "related-applications" => {
+                let statuses = r
+                    .q_values("status")
+                    .flat_map(|value| value.split(','))
+                    .map(|value| {
+                        value
+                            .parse::<i64>()
+                            .ok()
+                            .filter(|v| (0..=3).contains(v))
+                            .ok_or_else(|| ApiError::bad("Invalid workflow status"))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
                 let c = if p[1] == "invitations" {
                     "invitations"
                 } else {
                     "applications"
                 };
                 for w in s.find(c, doc! {}).await? {
+                    if !statuses.is_empty()
+                        && !w["status"].as_i64().is_some_and(|v| statuses.contains(&v))
+                    {
+                        continue;
+                    }
                     let own = core::field(&w, "user_id") == uid;
                     let g = s
                         .get(
@@ -1015,7 +1031,7 @@ pub async fn handle(r: &Request) -> Result<Option<Reply>> {
                             core::field(&w, "group_id"),
                         )
                         .await?;
-                    if own
+                    if (c == "invitations" && own)
                         || (c == "applications"
                             && has(
                                 &user_role(s, core::field(&w, "group_type"), &g, r.user.as_ref())
@@ -1392,7 +1408,12 @@ pub async fn handle(r: &Request) -> Result<Option<Reply>> {
                 .session(&mut session)
                 .await?;
             session.commit_transaction().await?;
-            return Ok(Some(workflow_view(r, &w).await?.into()));
+            let view = workflow_view(r, &w).await?;
+            return Ok(Some(if c == "invitations" {
+                json!({"message":"Invitation sent","invitation":view}).into()
+            } else {
+                json!({"message":if immediate {"Joined"} else {"Application submitted"},"group":view["group"],"joined":immediate,"application":view}).into()
+            }));
         }
         if kind == "team"
             && p.len() == 3
@@ -1542,7 +1563,7 @@ pub async fn handle(r: &Request) -> Result<Option<Reply>> {
             return Ok(Some(if c == "applications" {
                 json!({"message":"Processed","application":result}).into()
             } else {
-                result.into()
+                json!({"message":if allow {"Invitation accepted"} else {"Invitation declined"},"group":result["group"],"invitation":result}).into()
             }));
         }
         let kind = core::field(&w, "group_type");
@@ -1571,7 +1592,7 @@ pub async fn handle(r: &Request) -> Result<Option<Reply>> {
             if changed.matched_count == 0 {
                 return Err(ApiError::bad("Already processed"));
             }
-            return Ok(Some(workflow_view(r, &s.get(c, p[1]).await?).await?.into()));
+            return Ok(Some(json!({"message":"Invitation updated","invitation":workflow_view(r, &s.get(c, p[1]).await?).await?}).into()));
         }
         return Err(ApiError::bad("Unsupported workflow method"));
     }

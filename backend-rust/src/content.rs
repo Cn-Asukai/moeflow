@@ -1065,7 +1065,7 @@ pub async fn handle(r: &Request) -> Result<Option<Reply>> {
                     t
                 };
                 session.commit_transaction().await?;
-                return response(target_value(state, &t).await?);
+                return response(json!({"message":"Target added","target":target_value(state, &t).await?}));
             }
             unsupported()
         }

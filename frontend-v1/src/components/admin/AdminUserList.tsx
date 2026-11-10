@@ -1,3 +1,5 @@
+import { passwordRules } from '@/components/shared-form/passwordRules';
+import { isValidPassword } from '@/utils/password';
 import { css } from '@emotion/core';
 import React, { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -106,6 +108,10 @@ export const AdminUserList: FC<AdminUserListProps> = ({ className }) => {
   };
 
   const handleChangePasswordModalOk = () => {
+    if (!isValidPassword(newPassword)) {
+      message.error(formatMessage({ id: 'auth.passwordLength' }));
+      return;
+    }
     handelChangePassword(changePasswordModalUser!.id, newPassword);
     setChangePasswordModalOpen(false);
     setNewPassword('');
@@ -238,7 +244,8 @@ export const AdminUserList: FC<AdminUserListProps> = ({ className }) => {
         onCancel={handleChangePasswordModalCancel}
       >
         <Input.Password
-          minLength={6}
+          minLength={8}
+          maxLength={128}
           value={newPassword}
           onChange={(e) => {
             setNewPassword(e.target.value);
@@ -284,7 +291,7 @@ export const AdminUserList: FC<AdminUserListProps> = ({ className }) => {
           </FormItem>
           <FormItem
             name="password"
-            rules={[{ required: true }, { min: 6 }, { max: 60 }]}
+            rules={passwordRules}
           >
             <Input.Password prefix={formatMessage({ id: 'site.password' })} />
           </FormItem>

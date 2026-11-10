@@ -1646,6 +1646,7 @@ async fn ai(s: &AppState, j: &Value) -> Result<Value> {
             let text = String::from_utf8_lossy(&body);
             return Err(ApiError {
                 status,
+                retry_after: None,
                 message: format!(
                     "AI service {status}: {}",
                     text.chars().take(1024).collect::<String>()

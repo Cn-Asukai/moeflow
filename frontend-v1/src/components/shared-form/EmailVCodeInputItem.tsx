@@ -204,7 +204,7 @@ export const EmailVCodeInputItem: FC<EmailVCodeInputItemProps> = (
           return;
         }
         if (result.type === resultTypes.BASIC_FAILURE) {
-          if (result.data.code === 2004) {
+          if (result.data.code === 429 && Number.isFinite(result.data.retry_after) && result.data.retry_after! > 0) {
             // 冷却中，则提示稍后再试
             // 隐藏人机验证码输入框
             setCAPTCHAInputVisible(false);
@@ -212,9 +212,7 @@ export const EmailVCodeInputItem: FC<EmailVCodeInputItemProps> = (
             refresh();
             setEmailError(formatMessage({ id: 'form.needWait' }));
             // 设置提交按钮文本
-            startWaiting(
-              (result.data.message as unknown as { wait: number }).wait,
-            );
+            startWaiting(Math.ceil(result.data.retry_after!));
             // 调用已发送回调
             if (onSend) {
               onSend(true);
@@ -222,6 +220,8 @@ export const EmailVCodeInputItem: FC<EmailVCodeInputItemProps> = (
             return;
           }
         }
+        // The server consumes a CAPTCHA attempt even when verification or sending fails.
+        if (vCodeType !== 'resetEmail') refresh();
         result.default();
       })
       .finally(() => {

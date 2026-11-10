@@ -267,7 +267,9 @@ async fn cooldown(state: &AppState, key: &str, seconds: i64) -> Result<()> {
     match result {
         Ok(_) => Ok(()),
         Err(e) if e.to_string().contains("E11000") => {
-            Err(ApiError::bad("Please wait before trying again"))
+            let limit = state.db.collection::<Document>("auth_rate_limits").find_one(doc!{"id":key}).await?;
+            let remaining = limit.and_then(|v| v.get_i64("next_at").ok()).unwrap_or(now + seconds) - now;
+            Err(ApiError::rate_limited("Please wait before trying again", remaining))
         }
         Err(e) => Err(e.into()),
     }

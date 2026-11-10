@@ -171,7 +171,7 @@ export const InviteUser: FC<InviteUserProps> = ({
         message.success(result.data.message);
         // 邀请用户成功，这里 invitation 可能为空，因为用户可能已经申请，会被直接加入，不生成新的 invitation
         if (onInviteSuccess) {
-          onInviteSuccess(result.data.invitation);
+          onInviteSuccess(toLowerCamelCase(result.data.invitation));
         }
       })
       .catch((error) => {

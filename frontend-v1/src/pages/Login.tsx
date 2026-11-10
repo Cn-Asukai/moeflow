@@ -1,3 +1,4 @@
+import { passwordRules } from '@/components/shared-form/passwordRules';
 import { css } from '@emotion/core';
 import { Button, Input, Switch, Form as AntdForm, InputRef } from 'antd';
 import React, { useRef } from 'react';
@@ -165,7 +166,7 @@ const Login: FC<LoginProps> = ({ beforeRedirect = false } = {}) => {
             </FormItem>
             <FormItem
               name="password"
-              rules={[{ required: true }, { min: 6 }, { max: 60 }]}
+              rules={passwordRules}
             >
               <Input.Password
                 prefix={formatMessage({ id: 'site.password' })}

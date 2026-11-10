@@ -5,7 +5,7 @@ use chrono::{SecondsFormat, Utc};
 use futures::TryStreamExt;
 use mongodb::bson::{doc, Document};
 use serde_json::{json, Value};
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 pub type Result<T, E = ApiError> = std::result::Result<T, E>;
 
@@ -13,42 +13,56 @@ pub type Result<T, E = ApiError> = std::result::Result<T, E>;
 pub struct ApiError {
     pub status: StatusCode,
     pub message: String,
+    pub retry_after: Option<i64>,
 }
 impl ApiError {
+    pub fn rate_limited(message: impl Into<String>, seconds: i64) -> Self {
+        Self {
+            status: StatusCode::TOO_MANY_REQUESTS,
+            message: message.into(),
+            retry_after: Some(seconds.max(1)),
+        }
+    }
     pub fn bad(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::BAD_REQUEST,
             message: message.into(),
+            retry_after: None,
         }
     }
     pub fn forbidden(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::FORBIDDEN,
             message: message.into(),
+            retry_after: None,
         }
     }
     pub fn not_found(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::NOT_FOUND,
             message: message.into(),
+            retry_after: None,
         }
     }
     pub fn unauthorized(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::UNAUTHORIZED,
             message: message.into(),
+            retry_after: None,
         }
     }
     pub fn internal(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             message: message.into(),
+            retry_after: None,
         }
     }
     pub fn unavailable(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::SERVICE_UNAVAILABLE,
             message: message.into(),
+            retry_after: None,
         }
     }
 }
@@ -75,11 +89,18 @@ impl IntoResponse for ApiError {
         } else {
             self.status.as_u16()
         };
-        (
-            self.status,
-            Json(json!({"code":code,"error":"ApiError","message":message})),
-        )
-            .into_response()
+        let mut body = json!({"code":code,"error":"ApiError","message":message});
+        if let Some(seconds) = self.retry_after {
+            body["retry_after"] = json!(seconds);
+        }
+        let mut response = (self.status, Json(body)).into_response();
+        if let Some(seconds) = self.retry_after {
+            response.headers_mut().insert(
+                axum::http::header::RETRY_AFTER,
+                seconds.to_string().parse().unwrap(),
+            );
+        }
+        response
     }
 }
 impl From<mongodb::error::Error> for ApiError {
@@ -90,6 +111,7 @@ impl From<mongodb::error::Error> for ApiError {
             Self {
                 status: StatusCode::CONFLICT,
                 message: "A concurrent operation changed this record; retry the operation".into(),
+                retry_after: None,
             }
         } else {
             Self::internal(error.to_string())
@@ -262,7 +284,7 @@ pub struct Request {
     pub user: Option<Value>,
     pub method: Method,
     pub path: Vec<String>,
-    pub query: HashMap<String, String>,
+    pub query: Vec<(String, String)>,
     pub body: Value,
 }
 impl Request {
@@ -281,7 +303,17 @@ impl Request {
             .unwrap_or(false)
     }
     pub fn q(&self, key: &str) -> &str {
-        self.query.get(key).map(String::as_str).unwrap_or("")
+        self.query
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
+            .unwrap_or("")
+    }
+    pub fn q_values<'a>(&'a self, key: &'a str) -> impl Iterator<Item = &'a str> {
+        self.query
+            .iter()
+            .filter(move |(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
     }
 }
 pub struct Reply {

@@ -118,6 +118,7 @@ export const InvitationList: FC<InvitationListProps> = ({
   const handleInviteSuccess = (invitation: any) => {
     if (invitation) {
       setItems((items) => [invitation, ...items]);
+      setTotal((count) => Number(count) + 1);
     }
   };
 

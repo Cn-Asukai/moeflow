@@ -1,3 +1,4 @@
+import { passwordRules } from '@/components/shared-form/passwordRules';
 import { css } from '@emotion/core';
 import { Button, Form as AntdForm, Input, message } from 'antd';
 import { useState } from 'react';
@@ -62,14 +63,14 @@ export const UserPasswordEditForm: FC<UserPasswordEditFormProps> = ({
         <FormItem
           name="oldPassword"
           label={formatMessage({ id: 'site.oldPassword' })}
-          rules={[{ required: true }, { min: 6 }, { max: 60 }]}
+          rules={passwordRules}
         >
           <Input.Password />
         </FormItem>
         <FormItem
           name="newPassword"
           label={formatMessage({ id: 'site.newPassword' })}
-          rules={[{ required: true }, { min: 6 }, { max: 60 }]}
+          rules={passwordRules}
         >
           <Input.Password />
         </FormItem>
