@@ -407,14 +407,14 @@ export const FileList: FC<FileListProps> = ({
               signal: controller.signal,
               onUploadProgress: (event) => progress(!!event.total, event.loaded, event.total || file.size),
             }).then((result) => load(JSON.stringify(result.data))).catch((failure) => {
-              if (!controller.signal.aborted) error(failure?.data?.message || failure?.message || 'Upload failed');
+              if (!controller.signal.aborted) error(failure?.data?.message || failure?.message || formatMessage({ id: 'file.uploadFailure' }));
             });
             return { abort: () => { controller.abort(); abort(); } };
           },
         }}
       />
       <div className="FileList__Header">
-        {currentParentID && <Button onClick={() => { setCurrentParentID(undefined); setCurrentParentName(''); dispatch(setFilesState({ page: 1, scrollTop: 0 })); }}>Back to all files · {currentParentName}</Button>}
+        {currentParentID && <Button onClick={() => { setCurrentParentID(undefined); setCurrentParentName(''); dispatch(setFilesState({ page: 1, scrollTop: 0 })); }}>{formatMessage({ id: 'file.backToAll' }, { name: currentParentName })}</Button>}
         <Button
           className="FileList__ChangeTargetButton"
           icon="exchange-alt"
@@ -552,7 +552,7 @@ export const FileList: FC<FileListProps> = ({
                 onClick={() => {
                   if (file.uploadState === 'failure') {
                     const retry = filePondRef.current?.processFile(file.id);
-                    if (retry) void retry.catch(() => message.error('Upload retry failed. Click the file to try again.'));
+                    if (retry) void retry.catch(() => message.error(formatMessage({ id: 'file.uploadRetryFailed' })));
                     return;
                   }
                   if (file.type === FILE_TYPE.FOLDER) {
@@ -591,7 +591,7 @@ export const FileList: FC<FileListProps> = ({
                 onDeleteButtonClick={() => {
                   if (file.uploadState === 'failure') {
                     const removal = filePondRef.current?.removeFile(file.id, { revert: false });
-                    void Promise.resolve(removal).catch(() => message.error('Could not remove local upload'));
+                    void Promise.resolve(removal).catch(() => message.error(formatMessage({ id: 'file.uploadRemoveFailed' })));
                     setItems((current) => current.filter((item) => item.id !== file.id));
                     dispatch(setFilesState({ selectedFileIds: selectedFileIds.filter((id) => id !== file.id) }));
                     return;

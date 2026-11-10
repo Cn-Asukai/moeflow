@@ -25,7 +25,7 @@ import { AppState } from '@/store';
 import style from '@/style';
 import { toLowerCamelCase } from '@/utils';
 import dayjs from 'dayjs';
-import { OUTPUT_STATUS, OUTPUT_STATUS_LABELS, OUTPUT_TYPE } from '@/constants/output';
+import { OUTPUT_STATUS, OUTPUT_STATUS_MESSAGE_ID, OUTPUT_TYPE } from '@/constants/output';
 import { clickEffect } from '@/utils/style';
 
 const { Column } = Table;
@@ -207,10 +207,10 @@ export const TeamInsightProjectList: FC<TeamInsightProjectListProps> = ({
       {status !== 'failure' && (
         <Popconfirm
           placement="bottom"
-          title={'确认批量开始导出团队的所有项目的 zip 吗？'}
+          title={formatMessage({ id: 'team.exportAllConfirm' })}
           onConfirm={() => createTeamOutputs({ teamID: team.id })}
-          okText="开始吧～"
-          cancelText="不了"
+          okText={formatMessage({ id: 'team.exportAllOk' })}
+          cancelText={formatMessage({ id: 'team.exportAllCancel' })}
         >
           <div className="TeamInsightProjectList__OutputTeamProjectButton">
             <Icon
@@ -218,7 +218,7 @@ export const TeamInsightProjectList: FC<TeamInsightProjectListProps> = ({
               className="TeamInsightProjectList__OutputTeamProjectButtonIcon"
             />
             <span className="TeamInsightProjectList__OutputTeamProjectButtonText">
-              批量开始导出团队所有项目 zip
+              {formatMessage({ id: 'team.exportAll' })}
             </span>
           </div>
         </Popconfirm>
@@ -342,7 +342,7 @@ export const TeamInsightProjectList: FC<TeamInsightProjectListProps> = ({
                       createOutputs({ projectID: record.project.id });
                     }}
                   >
-                    导出所有语言 zip
+                    {formatMessage({ id: 'team.exportProject' })}
                   </Button>
                   {record.outputs.map((output) => (
                     <div>
@@ -361,12 +361,12 @@ export const TeamInsightProjectList: FC<TeamInsightProjectListProps> = ({
                           if (!output.resourceID) return;
                           const popup = window.open('', '_blank');
                           try { const { data } = await request<{ url: string }>({ method: 'GET', url: `/v1/resources/${output.resourceID}/download` }); if (popup) popup.location.href = data.url; }
-                          catch { popup?.close(); message.error('Export unavailable or expired'); }
+                          catch { popup?.close(); message.error(formatMessage({ id: 'output.unavailable' })); }
                         }}
                       >
                         {output.link
                           ? formatMessage({ id: 'output.download' })
-                          : output.statusDetails?.find((detail) => detail.id === output.status)?.name || OUTPUT_STATUS_LABELS[output.status]}{' '}
+                          : formatMessage({ id: OUTPUT_STATUS_MESSAGE_ID[output.status] })}{' '}
                         {output.type === OUTPUT_TYPE.ONLY_TEXT ? 'txt' : 'zip'}
                         {' - '}
                         {dayjs.utc(output.createTime).local().format('lll')}
@@ -374,7 +374,7 @@ export const TeamInsightProjectList: FC<TeamInsightProjectListProps> = ({
                         {output.target.language.i18nName}
                       </CustomButton>
                       {output.lastError && <p role="alert">{output.lastError}</p>}
-                      {output.expiresAt && <small>{output.expiresAt <= Date.now() / 1000 ? 'Export expired' : `Expires ${new Date(output.expiresAt * 1000).toLocaleString()}`}</small>}
+                      {output.expiresAt && <small>{output.expiresAt <= Date.now() / 1000 ? formatMessage({ id: 'output.expiredShort' }) : formatMessage({ id: 'output.expiresShort' }, { time: new Date(output.expiresAt * 1000).toLocaleString() })}</small>}
                     </div>
                   ))}
                 </div>

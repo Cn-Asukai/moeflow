@@ -1,11 +1,13 @@
 import { useTitle } from '@/hooks';
 import { useHistory } from 'react-router-dom';
 import { FC, useEffect } from 'react';
+import { useIntl } from 'react-intl';
 
-export const NotFoundPage: FC = (props) => {
+export const NotFoundPage: FC = () => {
   const history = useHistory();
+  const { formatMessage } = useIntl();
   useTitle({
-    prefix: 'Page not found',
+    prefix: formatMessage({ id: 'site.notFoundTitle' }),
   });
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -15,6 +17,6 @@ export const NotFoundPage: FC = (props) => {
     return () => {
       clearTimeout(timer);
     };
-  }, []);
-  return <div>Page not found. You will be redirected shortly</div>;
+  }, [history]);
+  return <div>{formatMessage({ id: 'site.notFound' })}</div>;
 };

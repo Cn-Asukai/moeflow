@@ -4,7 +4,7 @@ import { useIntl } from 'react-intl';
 import { ResourcePool } from '@jokester/ts-commonutil/lib/concurrency/resource-pool-basic';
 import { useAsyncEffect } from '@jokester/ts-commonutil/lib/react/hook/use-async-effect';
 import { api, request } from '@/apis';
-import { cancelJob, waitForJob } from '@/apis/jobs';
+import { cancelJob, formatJobStatus, waitForJob } from '@/apis/jobs';
 import { toLowerCamelCase } from '@/utils';
 import { ModalHandle } from '.';
 import { Icon } from '../icon';
@@ -29,7 +29,7 @@ export const BatchTranslateModalContent: FC<{ files: MFile[]; target: Target; on
         const { data } = await request<{ task_id: string }>({ method: 'POST', url: `/v1/files/${file.id}/ai`, data: { target_id: target.id } });
         active.add(data.task_id);
         if (!running.current) { await cancelJob(data.task_id); return; }
-        const job = await waitForJob(data.task_id, { signal: controller.signal, onProgress: (job) => update(file, job.status, `${job.status} ${Math.round(job.progress)}%`) });
+        const job = await waitForJob(data.task_id, { signal: controller.signal, onProgress: (job) => update(file, job.status, `${formatJobStatus(formatMessage, job.status)} ${Math.round(job.progress)}%`) });
         active.delete(data.task_id);
         const saved = toLowerCamelCase((await api.file.getFile({ fileID: file.id })).data);
         update(file, 'succeeded', formatMessage({ id: 'fileList.aiTranslate.fileMessage.success' }, { count: job.result.source_count || 0 }));
@@ -40,5 +40,5 @@ export const BatchTranslateModalContent: FC<{ files: MFile[]; target: Target; on
     })));
     if (running.current) getHandle().update({ okButtonProps: { disabled: false } });
   }, []);
-  return <div><p>AI uses the model configured by the server administrator. Closing this dialog requests cancellation of unfinished tasks.</p><p>{formatMessage({ id: 'fileList.aiTranslate.workingModal.content' }, { fileCount: files.length })}</p><ul>{states.map(({ file, status, message }) => <li key={file.id}><Icon icon={status === 'succeeded' ? 'check' : status === 'failed' || status === 'skipped' ? 'exclamation-circle' : status === 'running' ? 'spinner' : 'ellipsis-h'} spin={status === 'running'} /> {file.name} — {message || status}</li>)}</ul></div>;
+  return <div><p>{formatMessage({ id: 'fileList.aiTranslate.notice' })}</p><p>{formatMessage({ id: 'fileList.aiTranslate.workingModal.content' }, { fileCount: files.length })}</p><ul>{states.map(({ file, status, message }) => <li key={file.id}><Icon icon={status === 'succeeded' ? 'check' : status === 'failed' || status === 'skipped' ? 'exclamation-circle' : status === 'running' ? 'spinner' : 'ellipsis-h'} spin={status === 'running'} /> {file.name} — {message || formatJobStatus(formatMessage, status)}</li>)}</ul></div>;
 };

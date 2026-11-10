@@ -149,9 +149,9 @@ export const AdminImageSafeCheck: FC<AdminImageSafeCheckProps> = ({
       <div className="AdminImageSafeCheck__Top">
         <Radio.Group
           options={[
-            { label: 'Pending', value: 'pending' },
-            { label: 'Safe', value: 'safe' },
-            { label: 'Unsafe', value: 'unsafe' },
+            { label: formatMessage({ id: 'admin.moderation.pending' }), value: 'pending' },
+            { label: formatMessage({ id: 'admin.moderation.safe' }), value: 'safe' },
+            { label: formatMessage({ id: 'admin.moderation.unsafe' }), value: 'unsafe' },
           ]}
           defaultValue="pending"
           onChange={(e) => {

@@ -71,7 +71,7 @@ export const AvatarUpload: FC<AvatarUploadProps> = ({
             name="file"
             showUploadList={false}
             customRequest={({ file, onProgress, onSuccess, onError }) => {
-              if (!(file instanceof Blob)) { onError?.(new Error('Avatar must be a file')); return; }
+              if (!(file instanceof Blob)) { onError?.(new Error(formatMessage({ id: 'api.avatarMustBeFile' }))); return; }
               const controller = new AbortController();
               const name = file instanceof File ? file.name : file.type === 'image/jpeg' ? 'avatar.jpg' : 'avatar.png';
               directUpload<{ avatar: string }>(file, { purpose: type === 'user' ? 'user_avatar' : 'team_avatar', team_id: type === 'team' ? id : undefined, name }, {

@@ -5,11 +5,11 @@ export enum OUTPUT_STATUS {
   SUCCEEDED = 2, // 完成
   ERROR = 3, // 失败或取消
 }
-export const OUTPUT_STATUS_LABELS: Record<OUTPUT_STATUS, string> = {
-  [OUTPUT_STATUS.QUEUING]: 'Queued',
-  [OUTPUT_STATUS.RUNNING]: 'Running',
-  [OUTPUT_STATUS.SUCCEEDED]: 'Download',
-  [OUTPUT_STATUS.ERROR]: 'Failed or cancelled',
+export const OUTPUT_STATUS_MESSAGE_ID: Record<OUTPUT_STATUS, string> = {
+  [OUTPUT_STATUS.QUEUING]: 'output.queued',
+  [OUTPUT_STATUS.RUNNING]: 'output.running',
+  [OUTPUT_STATUS.SUCCEEDED]: 'output.download',
+  [OUTPUT_STATUS.ERROR]: 'output.failed',
 };
 // 导出类型
 export enum OUTPUT_TYPE {

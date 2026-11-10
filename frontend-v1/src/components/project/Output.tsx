@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import { useIntl } from 'react-intl';
 import { Avatar } from '..';
 import { APIOutput } from '../../apis/output';
-import { OUTPUT_STATUS, OUTPUT_STATUS_LABELS, OUTPUT_TYPE } from '../../constants/output';
+import { OUTPUT_STATUS, OUTPUT_STATUS_MESSAGE_ID, OUTPUT_TYPE } from '../../constants/output';
 import { FC } from '../../interfaces';
 import style from '../../style';
 import { Button } from '../shared/Button';
@@ -102,16 +102,16 @@ export const Output: FC<OutputProps> = ({ index, output, className }) => {
             try {
               const { data } = await request<{ url: string }>({ method: 'GET', url: `/v1/resources/${output.resourceID}/download` });
               if (popup) popup.location.href = data.url;
-            } catch (error) { popup?.close(); message.error('Download unavailable or expired'); }
+            } catch { popup?.close(); message.error(formatMessage({ id: 'output.downloadUnavailable' })); }
           }}
         >
           {output.link
             ? formatMessage({ id: 'output.download' })
-            : output.statusDetails?.find((d) => d.id === output.status)?.name || OUTPUT_STATUS_LABELS[output.status]}
+            : formatMessage({ id: OUTPUT_STATUS_MESSAGE_ID[output.status] })}
         </Button>
-        {![OUTPUT_STATUS.SUCCEEDED, OUTPUT_STATUS.ERROR].includes(output.status) && <p>{output.progress !== undefined ? `${Math.round(output.progress)}%` : 'Queued'} {output.taskID && <Button onClick={() => cancelJob(output.taskID!).catch(() => message.error('Unable to cancel export'))}>Cancel</Button>}</p>}
+        {![OUTPUT_STATUS.SUCCEEDED, OUTPUT_STATUS.ERROR].includes(output.status) && <p>{output.progress !== undefined ? `${Math.round(output.progress)}%` : formatMessage({ id: 'output.queued' })} {output.taskID && <Button onClick={() => cancelJob(output.taskID!).catch(() => message.error(formatMessage({ id: 'output.cancelFailed' })))}>{formatMessage({ id: 'output.cancel' })}</Button>}</p>}
         {output.lastError && <p role="alert">{output.lastError}</p>}
-        {output.expiresAt && <p>{output.expiresAt <= Date.now() / 1000 ? 'Export expired. Create a new export.' : `Expires: ${new Date(output.expiresAt * 1000).toLocaleString()}`}</p>}
+        {output.expiresAt && <p>{output.expiresAt <= Date.now() / 1000 ? formatMessage({ id: 'output.expired' }) : formatMessage({ id: 'output.expiresAt' }, { time: new Date(output.expiresAt * 1000).toLocaleString() })}</p>}
       </div>
     </div>
   );

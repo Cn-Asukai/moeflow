@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { BasicSuccessResult, request } from '.';
 import store from '@/store';
+import { getIntl } from '@/locales';
 interface UploadTicket { id: string; upload_url?: string; headers?: Record<string, string>; expires_at: number; session_expires_at: number; upload_mode?: 'multipart' | 'single'; part_size?: number }
 interface UploadSession { id: string; upload_mode: 'multipart' | 'single'; part_size?: number; session_expires_at: number; uploaded: boolean }
 interface UploadedPart { part_number: number; etag: string; size: number }
@@ -10,7 +11,7 @@ export async function directUpload<T = Record<string, unknown>>(file: Blob, opti
   const contentType = /\.(txt|md|srt)$/i.test(options.name) ? 'text/plain' : /\.zip$/i.test(options.name) ? 'application/zip' : file.type || (/\.png$/i.test(options.name) ? 'image/png' : /\.jpe?g$/i.test(options.name) ? 'image/jpeg' : /\.webp$/i.test(options.name) ? 'image/webp' : /\.gif$/i.test(options.name) ? 'image/gif' : 'application/octet-stream');
   const hashes: string[] = [];
   for (let offset = 0; offset < file.size; offset += 8 * 1024 * 1024) {
-    if (configs.signal?.aborted) throw new Error('Upload paused');
+    if (configs.signal?.aborted) throw new Error(getIntl().formatMessage({ id: 'api.uploadPaused' }));
     const hash = await crypto.subtle.digest('SHA-256', await file.slice(offset, offset + 8 * 1024 * 1024).arrayBuffer());
     hashes.push(Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join(''));
   }
@@ -46,7 +47,7 @@ export async function directUpload<T = Record<string, unknown>>(file: Blob, opti
       }
     } else {
       if (!ticket) ticket = (await request<UploadTicket>({ method: 'POST', url: `/v1/uploads/${session.id}/sign`, ...apiConfig })).data;
-      if (!ticket.upload_url) throw new Error('Upload URL missing');
+      if (!ticket.upload_url) throw new Error(getIntl().formatMessage({ id: 'api.uploadUrlMissing' }));
       await axios.put(ticket.upload_url, file, { headers: ticket.headers, ...apiConfig, onUploadProgress: configs.onUploadProgress });
     }
     session.uploaded = true;

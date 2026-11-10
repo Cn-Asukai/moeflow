@@ -173,7 +173,7 @@ export function handleFailure(error: unknown, form?: FormInstance): void {
   if (isFailureResult(error)) {
     if (error.type === resultTypes.VALIDATION_FAILURE) error.default(form);
     else error.default();
-  } else message.error(error instanceof Error ? error.message : 'Unexpected request failure');
+  } else message.error(error instanceof Error ? error.message : getIntl().formatMessage({ id: 'api.unexpected' }));
 }
 
 export async function request<T = unknown>(
@@ -210,7 +210,7 @@ export async function request<T = unknown>(
         }
         if (error.message === 'Network Error') throw { type: resultTypes.NETWORK_FAILURE, default: defaultNetworkFailure } satisfies NetworkFailureResult;
       }
-      throw { type: resultTypes.OTHER_FAILURE, default: () => { message.error(error instanceof Error ? error.message : 'Unexpected request failure'); } } satisfies OtherFailureResult;
+      throw { type: resultTypes.OTHER_FAILURE, default: () => { message.error(error instanceof Error ? error.message : getIntl().formatMessage({ id: 'api.unexpected' })); } } satisfies OtherFailureResult;
     });
 }
 

@@ -1299,3 +1299,207 @@ admin.imageModeration:
 admin.captchas:
   zhCn: 验证码
   en: Captchas
+file.folder:
+  zhCn: 文件夹
+  en: Folder
+file.textFile:
+  zhCn: UTF-8 文本
+  en: UTF-8 text
+file.backToAll:
+  zhCn: 返回全部文件 · {name}
+  en: Back to all files · {name}
+file.uploadRetryFailed:
+  zhCn: 重试上传失败，请点击文件再试一次。
+  en: Upload retry failed. Click the file to try again.
+file.uploadRemoveFailed:
+  zhCn: 无法移除本地上传
+  en: Could not remove local upload
+file.history:
+  zhCn: 历史
+  en: History
+file.historyTitle:
+  zhCn: 文件历史
+  en: File history
+file.historyTip:
+  zhCn: 文本修订版会保留原文和译文。激活某个修订版后，它会成为当前文件。
+  en: Text revisions retain their sources and translations. Activating a revision selects it as the current file.
+file.historyUnavailable:
+  zhCn: 无法加载历史
+  en: History unavailable
+file.historyActivateFailed:
+  zhCn: 无法激活修订版：没有权限，或项目为只读
+  en: 'Cannot activate revision: permission denied or project read-only'
+file.historyCurrent:
+  zhCn: 当前
+  en: Current
+file.historyActivate:
+  zhCn: 激活
+  en: Activate
+file.historyRevision:
+  zhCn: '{name} · 修订版 {revision}'
+  en: '{name} · revision {revision}'
+recycle.bin:
+  zhCn: 回收站
+  en: Recycle bin
+recycle.loadFailed:
+  zhCn: 无法加载回收站
+  en: Unable to load recycle bin
+recycle.tip:
+  zhCn: 已删除的内容及其历史可在 7 天内恢复。超过 7 天后将被永久删除。请先恢复已删除的上级。
+  en: Deleted items and their history can be restored for 7 days. After 7 days they are permanently deleted. Restore a deleted parent first.
+recycle.restore:
+  zhCn: 恢复
+  en: Restore
+recycle.restoreFailed:
+  zhCn: 恢复失败：上级不可用、已过期或没有权限
+  en: 'Restore failed: parent unavailable, expired, or permission denied'
+recycle.expires:
+  zhCn: '{type} · {time} 到期'
+  en: '{type} · expires {time}'
+recycle.type.team:
+  zhCn: 团队
+  en: Team
+recycle.type.project:
+  zhCn: 项目
+  en: Project
+recycle.type.projectSet:
+  zhCn: 项目集
+  en: Project set
+recycle.type.file:
+  zhCn: 文件
+  en: File
+output.queued:
+  zhCn: 排队中
+  en: Queued
+output.running:
+  zhCn: 进行中
+  en: Running
+output.failed:
+  zhCn: 失败或已取消
+  en: Failed or cancelled
+output.downloadUnavailable:
+  zhCn: 下载不可用或已过期
+  en: Download unavailable or expired
+output.cancel:
+  zhCn: 取消
+  en: Cancel
+output.cancelFailed:
+  zhCn: 无法取消导出
+  en: Unable to cancel export
+output.expired:
+  zhCn: 导出已过期，请重新导出。
+  en: Export expired. Create a new export.
+output.expiresAt:
+  zhCn: '到期时间：{time}'
+  en: 'Expires: {time}'
+output.expiredShort:
+  zhCn: 导出已过期
+  en: Export expired
+output.expiresShort:
+  zhCn: '{time} 到期'
+  en: Expires {time}
+output.unavailable:
+  zhCn: 导出不可用或已过期
+  en: Export unavailable or expired
+project.resume:
+  zhCn: 恢复项目
+  en: Resume project
+project.recycleTitle:
+  zhCn: 将项目移入回收站？
+  en: Move project to recycle bin?
+project.recycleContent:
+  zhCn: 7 天内可以恢复；之后文件和历史将被永久删除。
+  en: Restorable for 7 days; after that files and history are permanently removed.
+project.recycle:
+  zhCn: 移入回收站
+  en: Recycle project
+project.importQueued:
+  zhCn: '{name}：排队中'
+  en: '{name}: queued'
+project.importUpload:
+  zhCn: '{name}：上传 {percent}%'
+  en: '{name}: upload {percent}%'
+project.importProgress:
+  zhCn: '{name}：{status} {percent}%'
+  en: '{name}: {status} {percent}%'
+project.importSucceeded:
+  zhCn: '{name}：已完成'
+  en: '{name}: succeeded'
+project.importFailed:
+  zhCn: 导入失败
+  en: Import failed
+project.importFailedNamed:
+  zhCn: '{name}：导入失败'
+  en: '{name}: Import failed'
+admin.moderation.pending:
+  zhCn: 待审核
+  en: Pending
+admin.moderation.safe:
+  zhCn: 安全
+  en: Safe
+admin.moderation.unsafe:
+  zhCn: 不安全
+  en: Unsafe
+site.notFoundTitle:
+  zhCn: 页面不存在
+  en: Page not found
+site.notFound:
+  zhCn: 页面不存在，即将跳转
+  en: Page not found. You will be redirected shortly
+fileList.aiTranslate.notice:
+  zhCn: AI 使用服务器管理员配置的模型。关闭此对话框会请求取消未完成的任务。
+  en: AI uses the model configured by the server administrator. Closing this dialog requests cancellation of unfinished tasks.
+api.unexpected:
+  zhCn: 请求失败
+  en: Unexpected request failure
+api.uploadPaused:
+  zhCn: 上传已暂停
+  en: Upload paused
+api.uploadUrlMissing:
+  zhCn: 缺少上传地址
+  en: Upload URL missing
+api.avatarMustBeFile:
+  zhCn: 头像必须是文件
+  en: Avatar must be a file
+job.queued:
+  zhCn: 排队中
+  en: Queued
+job.preparing:
+  zhCn: 准备中
+  en: Preparing
+job.running:
+  zhCn: 进行中
+  en: Running
+job.succeeded:
+  zhCn: 已完成
+  en: Succeeded
+job.failed:
+  zhCn: 失败
+  en: Failed
+job.skipped:
+  zhCn: 已跳过
+  en: Skipped
+job.cancelled:
+  zhCn: 已取消
+  en: Cancelled
+job.failedStatus:
+  zhCn: 任务{status}
+  en: Task {status}
+job.observationCancelled:
+  zhCn: 已停止查看任务
+  en: Task observation cancelled
+team.exportAllConfirm:
+  zhCn: 确认批量开始导出团队的所有项目的 zip 吗？
+  en: Export zip files for every project in this team?
+team.exportAllOk:
+  zhCn: 开始
+  en: Start
+team.exportAllCancel:
+  zhCn: 取消
+  en: Cancel
+team.exportAll:
+  zhCn: 批量开始导出团队所有项目 zip
+  en: Export zip files for all team projects
+team.exportProject:
+  zhCn: 导出所有语言 zip
+  en: Export zip for every language

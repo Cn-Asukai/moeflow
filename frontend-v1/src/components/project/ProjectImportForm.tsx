@@ -10,7 +10,7 @@ import { toLowerCamelCase } from '@/utils';
 import { resetFilesState } from '@/store/file/slice';
 import { RcFile } from 'antd/lib/upload';
 import produce from 'immer';
-import { waitForJob } from '@/apis/jobs';
+import { waitForJob, formatJobStatus } from '@/apis/jobs';
 
 /** 导入项目表单的属性接口 */
 interface ProjectImportFormProps {
@@ -34,23 +34,24 @@ export const ProjectImportForm: FC<ProjectImportFormProps> = ({
 
   const handleImport = async () => {
     setImporting(true);
-    setImportStatuses((importFileList || []).map((file) => `${file.name}: queued`));
+    setImportStatuses((importFileList || []).map((file) => formatMessage({ id: 'project.importQueued' }, { name: file.name })));
     try {
       for (const [index, file] of (importFileList || []).entries()) {
-        const update = (status: string) => setImportStatuses(produce((draft) => { draft[index] = `${file.name}: ${status}`; }));
+        const update = (id: string, values?: Record<string, string | number>) => setImportStatuses(produce((draft) => { draft[index] = formatMessage({ id }, values); }));
         try {
-          const result = await api.project.importProject({ teamID, projectSetID, data: { project: file }, configs: { onUploadProgress: (event) => update(`upload ${Math.round(event.loaded / file.size * 100)}%`) } });
-          const job = await waitForJob(result.data.task_id, { onProgress: (job) => update(`${job.status} ${Math.round(job.progress)}%`) });
+          const result = await api.project.importProject({ teamID, projectSetID, data: { project: file }, configs: { onUploadProgress: (event) => update('project.importUpload', { name: file.name, percent: Math.round(event.loaded / file.size * 100) }) } });
+          const job = await waitForJob(result.data.task_id, { onProgress: (job) => update('project.importProgress', { name: file.name, status: formatJobStatus(formatMessage, job.status), percent: Math.round(job.progress) }) });
           if (job.result.project_id) {
             const project = await api.project.getProject({ id: job.result.project_id });
             dispatch(createProject({ project: toLowerCamelCase(project.data), unshift: true }));
           }
-          update('succeeded');
+          update('project.importSucceeded', { name: file.name });
           dispatch(resetFilesState());
           dispatch(resetProjectsState());
         } catch (error) {
-          update(error instanceof Error ? error.message : 'Import failed');
-          message.error(`${file.name}: Import failed`);
+          const detail = error instanceof Error ? error.message : '';
+          update('project.importFailedNamed', { name: detail ? `${file.name}（${detail}）` : file.name });
+          message.error(formatMessage({ id: 'project.importFailedNamed' }, { name: file.name }));
         }
       }
     } finally { setImporting(false); }

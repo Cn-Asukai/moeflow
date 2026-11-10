@@ -191,7 +191,7 @@ export const FileItem: FC<FileItemProps> = ({
     >
       <div className="FileItem__ImageWrapper">
         {file.type === FILE_TYPE.FOLDER || file.type === FILE_TYPE.TEXT ? (
-          <div className="FileItem__ImageTip">{file.type === FILE_TYPE.FOLDER ? 'Folder' : 'UTF-8 text'}</div>
+          <div className="FileItem__ImageTip">{file.type === FILE_TYPE.FOLDER ? formatMessage({ id: 'file.folder' }) : formatMessage({ id: 'file.textFile' })}</div>
         ) : file.coverUrl === 'generating' ? (
           <div className="FileItem__ImageTip">
             {formatMessage({ id: 'file.generating' })}
